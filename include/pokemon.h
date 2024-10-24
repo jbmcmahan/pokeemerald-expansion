@@ -374,6 +374,7 @@ struct SpeciesInfo /*0xC4*/
  /* 0x15 */ u8 growthRate;
  /* 0x16 */ u8 eggGroups[2];
  /* 0x18 */ u16 abilities[NUM_ABILITY_SLOTS]; // 3 abilities, no longer u8 because we have over 255 abilities now.
+            u16 innates[NUM_INNATE_PER_SPECIES];
  /* 0x1E */ u8 safariZoneFleeRate;
 
             // Pokédex data
@@ -878,5 +879,8 @@ const u8 *GetMoveName(u16 moveId);
 const u8 *GetMoveAnimationScript(u16 moveId);
 void UpdateDaysPassedSinceFormChange(u16 days);
 void TrySetDayLimitToFormChange(struct Pokemon *mon);
+bool8 SpeciesHasInnate(u16 species, u16 ability);
+bool8 MonHasInnate(struct Pokemon *mon, u16 ability);
+u8 GetSpeciesInnateNum(u16 species, u16 ability);
 
 #endif // GUARD_POKEMON_H

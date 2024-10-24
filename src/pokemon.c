@@ -6914,3 +6914,29 @@ void UpdateDaysPassedSinceFormChange(u16 days)
         }
     }
 }
+
+bool8 SpeciesHasInnate(u16 species, u16 ability) {
+	u8 i;
+
+    for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
+        if (gSpeciesInfo[species].innates[i] == ability)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+bool8 MonHasInnate(struct Pokemon *mon, u16 ability) {
+    u16 species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+
+    return SpeciesHasInnate(species, ability);
+}
+
+u8 GetSpeciesInnateNum(u16 species, u16 ability) {
+	u8 i;
+
+    for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
+        if (gSpeciesInfo[species].innates[i] == ability)
+            return i;
+    }
+    return NUM_INNATE_PER_SPECIES;
+}
