@@ -417,7 +417,7 @@ u8 PickWildMonNature(void)
     return Random() % NUM_NATURES;
 }
 
-static void CreateWildMon(u16 species, u8 level, u16 item)
+static void CreateWildMon(u16 species, u8 level, u8 teraType, u16 item)
 {
     bool32 checkCuteCharm = TRUE;
 
@@ -452,6 +452,7 @@ static void CreateWildMon(u16 species, u8 level, u16 item)
     }
 
     CreateMonWithNature(&gEnemyParty[0], species, level, USE_RANDOM_IVS, PickWildMonNature());
+    SetMonData(&gEnemyParty[0], MON_DATA_TERA_TYPE, &teraType);
     SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, &item);
 }
 #ifdef BUGFIX
@@ -464,6 +465,7 @@ static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, u8 ar
 {
     u8 wildMonIndex = 0;
     u8 level;
+    u8 teraType;
 
     switch (area)
     {
@@ -510,7 +512,12 @@ static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, u8 ar
     if (gMapHeader.mapLayoutId != LAYOUT_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS && flags & WILD_CHECK_KEEN_EYE && !IsAbilityAllowingEncounter(level))
         return FALSE;
 
-    CreateWildMon(wildMonInfo->wildPokemon[wildMonIndex].species, level, wildMonInfo->wildPokemon[wildMonIndex].item);
+    if (Random() % 2 == 0)
+        teraType = wildMonInfo->wildPokemon[wildMonIndex].teraType1;
+    else
+        teraType = wildMonInfo->wildPokemon[wildMonIndex].teraType2;
+
+    CreateWildMon(wildMonInfo->wildPokemon[wildMonIndex].species, level, teraType, wildMonInfo->wildPokemon[wildMonIndex].item);
     return TRUE;
 }
 
@@ -520,20 +527,33 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
     u16 wildMonSpecies = wildMonInfo->wildPokemon[wildMonIndex].species;
     u8 level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, WILD_AREA_FISHING);
     u16 wildMonItem = wildMonInfo->wildPokemon[wildMonIndex].item;
+    u8 teraType;
 
     UpdateChainFishingStreak();
-    CreateWildMon(wildMonSpecies, level, wildMonItem);
+
+    if (Random() % 2 == 0)
+        teraType = wildMonInfo->wildPokemon[wildMonIndex].teraType1;
+    else
+        teraType = wildMonInfo->wildPokemon[wildMonIndex].teraType2;
+
+    CreateWildMon(wildMonSpecies, level, teraType, wildMonItem);
     return wildMonSpecies;
 }
 
 static bool8 SetUpMassOutbreakEncounter(u8 flags)
 {
     u16 i;
+    u8 teraType;
 
     if (flags & WILD_CHECK_REPEL && !IsWildLevelAllowedByRepel(gSaveBlock1Ptr->outbreakPokemonLevel))
         return FALSE;
+    
+    if (Random() % 2 == 0)
+        teraType = gSaveBlock1Ptr->outbreakUnused1;
+    else
+        teraType = gSaveBlock1Ptr->outbreakUnused3;
 
-    CreateWildMon(gSaveBlock1Ptr->outbreakPokemonSpecies, gSaveBlock1Ptr->outbreakPokemonLevel, gSaveBlock1Ptr->outbreakPokemonItem);
+    CreateWildMon(gSaveBlock1Ptr->outbreakPokemonSpecies, gSaveBlock1Ptr->outbreakPokemonLevel, teraType, gSaveBlock1Ptr->outbreakPokemonItem);
     for (i = 0; i < MAX_MON_MOVES; i++)
         SetMonMoveSlot(&gEnemyParty[0], gSaveBlock1Ptr->outbreakPokemonMoves[i], i);
 
@@ -889,6 +909,7 @@ static void UpdateChainFishingStreak()
 void FishingWildEncounter(u8 rod)
 {
     u16 species;
+    u8 teraType;
 
     gIsFishingEncounter = TRUE;
     if (CheckFeebas() == TRUE)
@@ -896,7 +917,7 @@ void FishingWildEncounter(u8 rod)
         u8 level = ChooseWildMonLevel(&sWildFeebas, 0, WILD_AREA_FISHING);
 
         species = sWildFeebas.species;
-        CreateWildMon(species, level, ITEM_NONE);
+        CreateWildMon(species, level, TYPE_WATER, ITEM_NONE);
     }
     else
     {

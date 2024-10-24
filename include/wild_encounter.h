@@ -9,6 +9,8 @@ struct WildPokemon
     u8 maxLevel;
     u16 species;
     u16 item;
+    u8 teraType1;
+    u8 teraType2;
 };
 
 struct WildPokemonInfo
