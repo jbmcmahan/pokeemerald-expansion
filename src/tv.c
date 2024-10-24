@@ -194,41 +194,53 @@ static const struct {
     u8 level;
     u8 location;
     u16 item;
+    u8 teraType1;
+    u8 teraType2;
 } sPokeOutbreakSpeciesList[] = {
     {
         .species = SPECIES_SEEDOT,
         .moves = {MOVE_BIDE, MOVE_HARDEN, MOVE_LEECH_SEED},
         .level = 3,
         .location = MAP_NUM(ROUTE102),
-        .item = ITEM_NONE
+        .item = ITEM_NONE,
+        .teraType1 = TYPE_NORMAL,
+        .teraType2 = TYPE_NORMAL
     },
     {
         .species = SPECIES_NUZLEAF,
         .moves = {MOVE_HARDEN, MOVE_GROWTH, MOVE_NATURE_POWER, MOVE_LEECH_SEED},
         .level = 15,
         .location = MAP_NUM(ROUTE114),
-        .item = ITEM_NONE
+        .item = ITEM_NONE,
+        .teraType1 = TYPE_NORMAL,
+        .teraType2 = TYPE_NORMAL
     },
     {
         .species = SPECIES_SEEDOT,
         .moves = {MOVE_HARDEN, MOVE_GROWTH, MOVE_NATURE_POWER, MOVE_LEECH_SEED},
         .level = 13,
         .location = MAP_NUM(ROUTE117),
-        .item = ITEM_NONE
+        .item = ITEM_NONE,
+        .teraType1 = TYPE_NORMAL,
+        .teraType2 = TYPE_NORMAL
     },
     {
         .species = SPECIES_SEEDOT,
         .moves = {MOVE_GIGA_DRAIN, MOVE_FRUSTRATION, MOVE_SOLAR_BEAM, MOVE_LEECH_SEED},
         .level = 25,
         .location = MAP_NUM(ROUTE120),
-        .item = ITEM_NONE
+        .item = ITEM_NONE,
+        .teraType1 = TYPE_NORMAL,
+        .teraType2 = TYPE_NORMAL
     },
     {
         .species = SPECIES_SKITTY,
         .moves = {MOVE_GROWL, MOVE_TACKLE, MOVE_TAIL_WHIP, MOVE_ATTRACT},
         .level = 8,
         .location = MAP_NUM(ROUTE116),
-        .item = ITEM_NONE
+        .item = ITEM_NONE,
+        .teraType1 = TYPE_NORMAL,
+        .teraType2 = TYPE_NORMAL
     }
 };
 
@@ -1558,13 +1570,13 @@ void StartMassOutbreak(void)
     gSaveBlock1Ptr->outbreakLocationMapNum = show->massOutbreak.locationMapNum;
     gSaveBlock1Ptr->outbreakLocationMapGroup = show->massOutbreak.locationMapGroup;
     gSaveBlock1Ptr->outbreakPokemonLevel = show->massOutbreak.level;
-    gSaveBlock1Ptr->outbreakUnused1 = show->massOutbreak.unused1;
+    gSaveBlock1Ptr->outbreakPokemonTeraType1 = show->massOutbreak.teraType1;
     gSaveBlock1Ptr->outbreakPokemonItem = show->massOutbreak.item;
     gSaveBlock1Ptr->outbreakPokemonMoves[0] = show->massOutbreak.moves[0];
     gSaveBlock1Ptr->outbreakPokemonMoves[1] = show->massOutbreak.moves[1];
     gSaveBlock1Ptr->outbreakPokemonMoves[2] = show->massOutbreak.moves[2];
     gSaveBlock1Ptr->outbreakPokemonMoves[3] = show->massOutbreak.moves[3];
-    gSaveBlock1Ptr->outbreakUnused3 = show->massOutbreak.unused3;
+    gSaveBlock1Ptr->outbreakPokemonTeraType2 = show->massOutbreak.teraType2;
     gSaveBlock1Ptr->outbreakPokemonProbability = show->massOutbreak.probability;
     gSaveBlock1Ptr->outbreakDaysLeft = 2;
 }
@@ -1652,8 +1664,8 @@ static void TryStartRandomMassOutbreak(void)
                 show->massOutbreak.kind = TVSHOW_MASS_OUTBREAK;
                 show->massOutbreak.active = TRUE;
                 show->massOutbreak.level = sPokeOutbreakSpeciesList[outbreakIdx].level;
-                show->massOutbreak.unused1 = 0;
-                show->massOutbreak.unused3 = 0;
+                show->massOutbreak.teraType1 = sPokeOutbreakSpeciesList[outbreakIdx].teraType1;
+                show->massOutbreak.teraType2 = sPokeOutbreakSpeciesList[outbreakIdx].teraType2;
                 show->massOutbreak.species = sPokeOutbreakSpeciesList[outbreakIdx].species;
                 show->massOutbreak.item = sPokeOutbreakSpeciesList[outbreakIdx].item;
                 show->massOutbreak.moves[0] = sPokeOutbreakSpeciesList[outbreakIdx].moves[0];
@@ -1679,13 +1691,13 @@ void EndMassOutbreak(void)
     gSaveBlock1Ptr->outbreakLocationMapNum = 0;
     gSaveBlock1Ptr->outbreakLocationMapGroup = 0;
     gSaveBlock1Ptr->outbreakPokemonLevel = 0;
-    gSaveBlock1Ptr->outbreakUnused1 = 0;
+    gSaveBlock1Ptr->outbreakPokemonTeraType1 = 0;
     gSaveBlock1Ptr->outbreakPokemonItem = 0;
     gSaveBlock1Ptr->outbreakPokemonMoves[0] = MOVE_NONE;
     gSaveBlock1Ptr->outbreakPokemonMoves[1] = MOVE_NONE;
     gSaveBlock1Ptr->outbreakPokemonMoves[2] = MOVE_NONE;
     gSaveBlock1Ptr->outbreakPokemonMoves[3] = MOVE_NONE;
-    gSaveBlock1Ptr->outbreakUnused3 = 0;
+    gSaveBlock1Ptr->outbreakPokemonTeraType2 = 0;
     gSaveBlock1Ptr->outbreakPokemonProbability = 0;
     gSaveBlock1Ptr->outbreakDaysLeft = 0;
 }

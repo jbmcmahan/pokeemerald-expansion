@@ -549,9 +549,9 @@ static bool8 SetUpMassOutbreakEncounter(u8 flags)
         return FALSE;
     
     if (Random() % 2 == 0)
-        teraType = gSaveBlock1Ptr->outbreakUnused1;
+        teraType = gSaveBlock1Ptr->outbreakPokemonTeraType1;
     else
-        teraType = gSaveBlock1Ptr->outbreakUnused3;
+        teraType = gSaveBlock1Ptr->outbreakPokemonTeraType2;
 
     CreateWildMon(gSaveBlock1Ptr->outbreakPokemonSpecies, gSaveBlock1Ptr->outbreakPokemonLevel, teraType, gSaveBlock1Ptr->outbreakPokemonItem);
     for (i = 0; i < MAX_MON_MOVES; i++)

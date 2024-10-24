@@ -475,8 +475,8 @@ typedef union // size = 0x24
     struct {
         /*0x00*/ u8 kind;
         /*0x01*/ bool8 active;
-        /*0x02*/ u8 unused1;
-        /*0x03*/ u8 unused3;
+        /*0x02*/ u8 teraType1;
+        /*0x03*/ u8 teraType2;
         /*0x04*/ u16 moves[MAX_MON_MOVES];
         /*0x0C*/ u16 species;
         /*0x0E*/ u16 item;
