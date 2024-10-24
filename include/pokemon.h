@@ -368,8 +368,6 @@ struct SpeciesInfo /*0xC4*/
  /* 0x0D */ u16 evYield_SpAttack:2;
             u16 evYield_SpDefense:2;
             u16 padding2:4;
- /* 0x0E */ u16 itemCommon;
- /* 0x10 */ u16 itemRare;
  /* 0x12 */ u8 genderRatio;
  /* 0x13 */ u8 eggCycles;
  /* 0x14 */ u8 friendship;
