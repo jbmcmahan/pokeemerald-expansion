@@ -468,7 +468,7 @@ bool32 TryRunFromBattle(u32 battler)
     {
         effect++;
     }
-    else if (GetBattlerAbility(battler) == ABILITY_RUN_AWAY)
+    else if (BattlerHasAbilityOrInnate(battler, ABILITY_RUN_AWAY))
     {
         if (InBattlePyramid())
         {
