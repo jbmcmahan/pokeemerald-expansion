@@ -2284,6 +2284,9 @@ enum
     ENDTURN_INGRAIN,
     ENDTURN_AQUA_RING,
     ENDTURN_ABILITIES,
+    ENDTURN_INNATES1,
+    ENDTURN_INNATES2,
+    ENDTURN_INNATES3,
     ENDTURN_ITEMS1,
     ENDTURN_LEECH_SEED,
     ENDTURN_POISON,
@@ -2349,6 +2352,7 @@ if (BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD)) \
 u8 DoBattlerEndTurnEffects(void)
 {
     u32 battler, ability, i, effect = 0;
+    u16 species, innate;
 
     gHitMarker |= (HITMARKER_GRUDGE | HITMARKER_IGNORE_BIDE);
     while (gBattleStruct->turnEffectsBattlerId < gBattlersCount && gBattleStruct->turnEffectsTracker <= ENDTURN_BATTLER_COUNT)
@@ -2442,6 +2446,39 @@ u8 DoBattlerEndTurnEffects(void)
             break;
         case ENDTURN_ABILITIES:  // end turn abilities
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, 0, 0, 0))
+                effect++;
+            gBattleStruct->turnEffectsTracker++;
+            break;
+        case ENDTURN_INNATES1:  // end turn innates
+            species = gBattleMons[battler].species;
+            innate = gSpeciesInfo[species].innates[0];
+            if (innate == ABILITY_NONE) {
+                gBattleStruct->turnEffectsTracker++;
+                break;
+            }
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
+                effect++;
+            gBattleStruct->turnEffectsTracker++;
+            break;
+        case ENDTURN_INNATES2:  // end turn innates
+            species = gBattleMons[battler].species;
+            innate = gSpeciesInfo[species].innates[1];
+            if (innate == ABILITY_NONE) {
+                gBattleStruct->turnEffectsTracker++;
+                break;
+            }
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
+                effect++;
+            gBattleStruct->turnEffectsTracker++;
+            break;
+        case ENDTURN_INNATES3:  // end turn innates
+            species = gBattleMons[battler].species;
+            innate = gSpeciesInfo[species].innates[2];
+            if (innate == ABILITY_NONE) {
+                gBattleStruct->turnEffectsTracker++;
+                break;
+            }
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
                 effect++;
             gBattleStruct->turnEffectsTracker++;
             break;
@@ -3274,7 +3311,7 @@ u8 AtkCanceller_UnableToUseMove(u32 moveType)
                 else
                 {
                     u8 toSub;
-                    if (GetBattlerAbility(gBattlerAttacker) == ABILITY_EARLY_BIRD)
+                    if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_EARLY_BIRD))
                         toSub = 2;
                     else
                         toSub = 1;
@@ -3323,7 +3360,7 @@ u8 AtkCanceller_UnableToUseMove(u32 moveType)
             gBattleStruct->atkCancellerTracker++;
             break;
         case CANCELLER_TRUANT: // truant
-            if (GetBattlerAbility(gBattlerAttacker) == ABILITY_TRUANT && gDisableStructs[gBattlerAttacker].truantCounter)
+            if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_TRUANT) && gDisableStructs[gBattlerAttacker].truantCounter)
             {
                 CancelMultiTurnMoves(gBattlerAttacker);
                 gHitMarker |= HITMARKER_UNABLE_TO_USE_MOVE;
@@ -3539,7 +3576,7 @@ u8 AtkCanceller_UnableToUseMove(u32 moveType)
             if ((gMovesInfo[gCurrentMove].powderMove) && (gBattlerAttacker != gBattlerTarget))
             {
                 if (B_POWDER_GRASS >= GEN_6
-                    && (IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_GRASS) || GetBattlerAbility(gBattlerTarget) == ABILITY_OVERCOAT))
+                    && (IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_GRASS) || BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_OVERCOAT)))
                 {
                     gBattlerAbility = gBattlerTarget;
                     effect = 1;
@@ -3565,7 +3602,7 @@ u8 AtkCanceller_UnableToUseMove(u32 moveType)
                  || (gCurrentMove == MOVE_GRASS_PLEDGE && partnerMove == MOVE_FIRE_PLEDGE && gBattleStruct->pledgeMove))
                 {
                     gProtectStructs[gBattlerAttacker].powderSelfDmg = TRUE;
-                    if (GetBattlerAbility(gBattlerAttacker) != ABILITY_MAGIC_GUARD
+                    if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGIC_GUARD)
                     && (B_POWDER_RAIN < GEN_7 || !IsBattlerWeatherAffected(gBattlerAttacker, B_WEATHER_RAIN_PRIMAL)))
                         gBattleMoveDamage = GetNonDynamaxMaxHP(gBattlerAttacker) / 4;
 
@@ -3647,13 +3684,11 @@ u8 AtkCanceller_UnableToUseMove(u32 moveType)
         case CANCELLER_MULTIHIT_MOVES:
             if (gMovesInfo[gCurrentMove].effect == EFFECT_MULTI_HIT)
             {
-                u32 ability = GetBattlerAbility(gBattlerAttacker);
-
-                if (ability == ABILITY_SKILL_LINK)
+                if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_SKILL_LINK))
                 {
                     gMultiHitCounter = 5;
                 }
-                else if (ability == ABILITY_BATTLE_BOND
+                else if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_BATTLE_BOND)
                 && gCurrentMove == MOVE_WATER_SHURIKEN
                 && gBattleMons[gBattlerAttacker].species == SPECIES_GRENINJA_ASH)
                 {
@@ -3914,11 +3949,10 @@ static const u16 sWeatherFlagsInfo[][3] =
 
 bool32 TryChangeBattleWeather(u32 battler, u32 weatherEnumId, bool32 viaAbility)
 {
-    u16 battlerAbility = GetBattlerAbility(battler);
     if (gBattleWeather & B_WEATHER_PRIMAL_ANY
-        && battlerAbility != ABILITY_DESOLATE_LAND
-        && battlerAbility != ABILITY_PRIMORDIAL_SEA
-        && battlerAbility != ABILITY_DELTA_STREAM)
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_DESOLATE_LAND)
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_PRIMORDIAL_SEA)
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_DELTA_STREAM))
     {
         return FALSE;
     }
@@ -4126,6 +4160,8 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
 
     if (special)
         gLastUsedAbility = special;
+    else if (ability)
+        gLastUsedAbility = ability;
     else
         gLastUsedAbility = GetBattlerAbility(battler);
 
