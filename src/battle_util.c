@@ -226,21 +226,21 @@ void HandleAction_UseMove(void)
     else if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
            && gSideTimers[side].followmeTimer == 0
            && (gMovesInfo[gCurrentMove].power != 0 || (moveTarget != MOVE_TARGET_USER && moveTarget != MOVE_TARGET_ALL_BATTLERS))
-           && ((GetBattlerAbility(*(gBattleStruct->moveTarget + gBattlerAttacker)) != ABILITY_LIGHTNING_ROD && moveType == TYPE_ELECTRIC)
-            || (GetBattlerAbility(*(gBattleStruct->moveTarget + gBattlerAttacker)) != ABILITY_STORM_DRAIN && moveType == TYPE_WATER)))
+           && ((!BattlerHasAbilityOrInnate(*(gBattleStruct->moveTarget + gBattlerAttacker), ABILITY_LIGHTNING_ROD) && moveType == TYPE_ELECTRIC)
+            || (!BattlerHasAbilityOrInnate(*(gBattleStruct->moveTarget + gBattlerAttacker), ABILITY_STORM_DRAIN) && moveType == TYPE_WATER)))
     {
         side = GetBattlerSide(gBattlerAttacker);
         for (battler = 0; battler < gBattlersCount; battler++)
         {
             if (side != GetBattlerSide(battler)
                 && *(gBattleStruct->moveTarget + gBattlerAttacker) != battler
-                && ((GetBattlerAbility(battler) == ABILITY_LIGHTNING_ROD && moveType == TYPE_ELECTRIC)
-                 || (GetBattlerAbility(battler) == ABILITY_STORM_DRAIN && moveType == TYPE_WATER))
+                && ((BattlerHasAbilityOrInnate(battler, ABILITY_LIGHTNING_ROD) && moveType == TYPE_ELECTRIC)
+                 || (BattlerHasAbilityOrInnate(battler, ABILITY_STORM_DRAIN) && moveType == TYPE_WATER))
                 && GetBattlerTurnOrderNum(battler) < var
                 && gMovesInfo[gCurrentMove].effect != EFFECT_SNIPE_SHOT
                 && gMovesInfo[gCurrentMove].effect != EFFECT_PLEDGE
-                && GetBattlerAbility(gBattlerAttacker) != ABILITY_PROPELLER_TAIL
-                && GetBattlerAbility(gBattlerAttacker) != ABILITY_STALWART)
+                && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_PROPELLER_TAIL)
+                && !BattlerHasAbilityOrInnate(gBattlerAttacker,ABILITY_STALWART))
             {
                 var = GetBattlerTurnOrderNum(battler);
             }
@@ -295,15 +295,16 @@ void HandleAction_UseMove(void)
         }
         else
         {
-            u16 battlerAbility;
             battler = gBattlerByTurnOrder[var];
-            battlerAbility = GetBattlerAbility(battler);
 
-            RecordAbilityBattle(battler, gBattleMons[battler].ability);
-            if (battlerAbility == ABILITY_LIGHTNING_ROD && gCurrentMove != MOVE_TEATIME)
+            if (BattlerHasAbilityOrInnate(battler, ABILITY_LIGHTNING_ROD) && moveType == TYPE_ELECTRIC && gCurrentMove != MOVE_TEATIME) {
+                RecordAbilityBattle(battler, ABILITY_LIGHTNING_ROD);
                 gSpecialStatuses[battler].lightningRodRedirected = TRUE;
-            else if (battlerAbility == ABILITY_STORM_DRAIN)
+            }
+            else if (BattlerHasAbilityOrInnate(battler, ABILITY_STORM_DRAIN) && moveType == TYPE_WATER) {
+                RecordAbilityBattle(battler, ABILITY_STORM_DRAIN);
                 gSpecialStatuses[battler].stormDrainRedirected = TRUE;
+            }
             gBattlerTarget = battler;
         }
     }
