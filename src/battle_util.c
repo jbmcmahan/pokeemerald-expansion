@@ -1561,7 +1561,7 @@ u8 CheckMoveLimitations(u32 battler, u8 unusableMoves, u16 check)
         else if (check & MOVE_LIMITATION_STUFF_CHEEKS && moveEffect == EFFECT_STUFF_CHEEKS && ItemId_GetPocket(gBattleMons[battler].item) != POCKET_BERRIES)
             unusableMoves |= gBitTable[i];
         // Gorilla Tactics
-        else if (check & MOVE_LIMITATION_CHOICE_ITEM && GetBattlerAbility(battler) == ABILITY_GORILLA_TACTICS && *choicedMove != MOVE_NONE && *choicedMove != MOVE_UNAVAILABLE && *choicedMove != move)
+        else if (check & MOVE_LIMITATION_CHOICE_ITEM && BattlerHasAbilityOrInnate(battler, ABILITY_GORILLA_TACTICS) && *choicedMove != MOVE_NONE && *choicedMove != MOVE_UNAVAILABLE && *choicedMove != move)
             unusableMoves |= gBitTable[i];
         // Can't Use Twice flag
         else if (check & MOVE_LIMITATION_CANT_USE_TWICE && gMovesInfo[move].cantUseTwice && move == gLastResultingMoves[battler])
@@ -1638,7 +1638,7 @@ static void TryToRevertMimicryAndFlags(void)
     for (i = 0; i < gBattlersCount; i++)
     {
         gDisableStructs[i].terrainAbilityDone = FALSE;
-        if (GetBattlerAbility(i) == ABILITY_MIMICRY)
+        if (BattlerHasAbilityOrInnate(i, ABILITY_MIMICRY))
             RESTORE_BATTLER_TYPE(i);
     }
 }
@@ -2338,7 +2338,7 @@ s32 GetDrainedBigRootHp(u32 battler, s32 hp)
 }
 
 #define MAGIC_GUARD_CHECK \
-if (ability == ABILITY_MAGIC_GUARD) \
+if (BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD)) \
 {\
     RecordAbilityBattle(battler, ability);\
     gBattleStruct->turnEffectsTracker++;\
@@ -2365,16 +2365,16 @@ u8 DoBattlerEndTurnEffects(void)
         {
         case ENDTURN_WEATHER_DAMAGE:
             ability = GetBattlerAbility(battler);
-            if (!IsBattlerAlive(battler) || !WEATHER_HAS_EFFECT || ability == ABILITY_MAGIC_GUARD)
+            if (!IsBattlerAlive(battler) || !WEATHER_HAS_EFFECT || BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD))
             {
                 gBattleStruct->turnEffectsTracker++;
                 break;
             }
             else if (gBattleWeather & B_WEATHER_SANDSTORM
-                  && ability != ABILITY_SAND_VEIL
-                  && ability != ABILITY_SAND_FORCE
-                  && ability != ABILITY_SAND_RUSH
-                  && ability != ABILITY_OVERCOAT
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_SAND_VEIL)
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_SAND_FORCE)
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_SAND_RUSH)
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_OVERCOAT)
                   && !IS_BATTLER_OF_TYPE(gBattlerAttacker, TYPE_ROCK)
                   && !IS_BATTLER_OF_TYPE(gBattlerAttacker, TYPE_GROUND)
                   && !IS_BATTLER_OF_TYPE(gBattlerAttacker, TYPE_STEEL)
@@ -2389,7 +2389,7 @@ u8 DoBattlerEndTurnEffects(void)
                 effect++;
             }
             else if (gBattleWeather & (B_WEATHER_HAIL | B_WEATHER_SNOW)
-                  && ability == ABILITY_ICE_BODY
+                  && BattlerHasAbilityOrInnate(battler, ABILITY_ICE_BODY)
                   && !(gStatuses3[battler] & (STATUS3_UNDERGROUND | STATUS3_UNDERWATER))
                   && !BATTLER_MAX_HP(battler)
                   && !(gStatuses3[battler] & STATUS3_HEAL_BLOCK))
@@ -2401,9 +2401,9 @@ u8 DoBattlerEndTurnEffects(void)
             }
             else if (gBattleWeather & B_WEATHER_HAIL
                   && !IS_BATTLER_OF_TYPE(battler, TYPE_ICE)
-                  && ability != ABILITY_SNOW_CLOAK
-                  && ability != ABILITY_OVERCOAT
-                  && ability != ABILITY_ICE_BODY
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_SNOW_CLOAK)
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_OVERCOAT)
+                  && !BattlerHasAbilityOrInnate(battler, ABILITY_ICE_BODY)
                   && !(gStatuses3[battler] & (STATUS3_UNDERGROUND | STATUS3_UNDERWATER))
                   && GetBattlerHoldEffect(battler, TRUE) != HOLD_EFFECT_SAFETY_GOGGLES)
             {
@@ -2493,7 +2493,7 @@ u8 DoBattlerEndTurnEffects(void)
             {
                 MAGIC_GUARD_CHECK;
 
-                if (ability == ABILITY_POISON_HEAL)
+                if (BattlerHasAbilityOrInnate(battler, ABILITY_POISON_HEAL))
                 {
                     if (!BATTLER_MAX_HP(battler) && !(gStatuses3[battler] & STATUS3_HEAL_BLOCK))
                     {
@@ -2522,7 +2522,7 @@ u8 DoBattlerEndTurnEffects(void)
             {
                 MAGIC_GUARD_CHECK;
 
-                if (ability == ABILITY_POISON_HEAL)
+                if (BattlerHasAbilityOrInnate(battler, ABILITY_POISON_HEAL))
                 {
                     if (!BATTLER_MAX_HP(battler) && !(gStatuses3[battler] & STATUS3_HEAL_BLOCK))
                     {
@@ -2554,7 +2554,7 @@ u8 DoBattlerEndTurnEffects(void)
             {
                 MAGIC_GUARD_CHECK;
                 gBattleMoveDamage = GetNonDynamaxMaxHP(battler) / (B_BURN_DAMAGE >= GEN_7 ? 16 : 8);
-                if (ability == ABILITY_HEATPROOF)
+                if (BattlerHasAbilityOrInnate(battler, ABILITY_HEATPROOF))
                 {
                     if (gBattleMoveDamage > (gBattleMoveDamage / 2) + 1) // Record ability if the burn takes less damage than it normally would.
                         RecordAbilityBattle(battler, ABILITY_HEATPROOF);
@@ -2662,7 +2662,7 @@ u8 DoBattlerEndTurnEffects(void)
                 for (gBattlerAttacker = 0; gBattlerAttacker < gBattlersCount; gBattlerAttacker++)
                 {
                     if ((gBattleMons[gBattlerAttacker].status1 & STATUS1_SLEEP)
-                     && GetBattlerAbility(gBattlerAttacker) != ABILITY_SOUNDPROOF)
+                     && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_SOUNDPROOF))
                     {
                         gBattleMons[gBattlerAttacker].status1 &= ~STATUS1_SLEEP;
                         gBattleMons[gBattlerAttacker].status2 &= ~STATUS2_NIGHTMARE;
@@ -2794,11 +2794,11 @@ u8 DoBattlerEndTurnEffects(void)
         case ENDTURN_YAWN:  // yawn
             if (gStatuses3[battler] & STATUS3_YAWN)
             {
-                u16 battlerAbility = GetBattlerAbility(battler);
                 gStatuses3[battler] -= STATUS3_YAWN_TURN(1);
                 if (!(gStatuses3[battler] & STATUS3_YAWN) && !(gBattleMons[battler].status1 & STATUS1_ANY)
-                 && battlerAbility != ABILITY_VITAL_SPIRIT
-                 && battlerAbility != ABILITY_INSOMNIA && !UproarWakeUpCheck(battler)
+                 && !BattlerHasAbilityOrInnate(battler, ABILITY_VITAL_SPIRIT)
+                 && !BattlerHasAbilityOrInnate(battler, ABILITY_INSOMNIA)
+                 && !UproarWakeUpCheck(battler)
                  && !IsLeafGuardProtected(battler))
                 {
                     CancelMultiTurnMoves(battler);
@@ -2911,7 +2911,7 @@ u8 DoBattlerEndTurnEffects(void)
         case ENDTURN_SLOW_START:
             if (gDisableStructs[battler].slowStartTimer
                 && --gDisableStructs[battler].slowStartTimer == 0
-                && ability == ABILITY_SLOW_START)
+                && BattlerHasAbilityOrInnate(battler, ABILITY_SLOW_START))
             {
                 BattleScriptExecute(BattleScript_SlowStartEnds);
                 effect++;
@@ -2919,7 +2919,7 @@ u8 DoBattlerEndTurnEffects(void)
             gBattleStruct->turnEffectsTracker++;
             break;
         case ENDTURN_CUD_CHEW:
-            if (GetBattlerAbility(battler) == ABILITY_CUD_CHEW && !gDisableStructs[battler].cudChew && ItemId_GetPocket(GetUsedHeldItem(battler)) == POCKET_BERRIES)
+            if (BattlerHasAbilityOrInnate(battler, ABILITY_CUD_CHEW) && !gDisableStructs[battler].cudChew && ItemId_GetPocket(GetUsedHeldItem(battler)) == POCKET_BERRIES)
                 gDisableStructs[battler].cudChew = TRUE;
             gBattleStruct->turnEffectsTracker++;
             break;
@@ -2979,7 +2979,7 @@ u8 DoBattlerEndTurnEffects(void)
                 if (gSideTimers[side].damageNonTypesTimer
                  && !IS_BATTLER_OF_TYPE(gBattlerAttacker, gSideTimers[side].damageNonTypesType)
                  && IsBattlerAlive(gBattlerAttacker)
-                 && GetBattlerAbility(gBattlerAttacker) != ABILITY_MAGIC_GUARD)
+                 && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGIC_GUARD))
                 {
                     gBattleScripting.battler = battler;
                     gBattleMoveDamage = GetNonDynamaxMaxHP(battler) / 6;
