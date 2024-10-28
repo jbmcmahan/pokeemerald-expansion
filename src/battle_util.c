@@ -9590,7 +9590,7 @@ static inline u32 CalcAttackStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 m
     if (isCrit && atkStage < DEFAULT_STAT_STAGE)
         atkStage = DEFAULT_STAT_STAGE;
     // pokemon with unaware ignore attack stat changes while taking damage
-    if (defAbility == ABILITY_UNAWARE)
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_UNAWARE))
         atkStage = DEFAULT_STAT_STAGE;
 
     atkStat *= gStatStageRatios[atkStage][0];
@@ -9600,111 +9600,115 @@ static inline u32 CalcAttackStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 m
     modifier = UQ_4_12(1.0);
 
     // attacker's abilities
-    switch (atkAbility)
-    {
-    case ABILITY_HUGE_POWER:
-    case ABILITY_PURE_POWER:
-        if (IS_MOVE_PHYSICAL(move))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
-        break;
-    case ABILITY_SLOW_START:
-        if (gDisableStructs[battlerAtk].slowStartTimer != 0)
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
-        break;
-    case ABILITY_SOLAR_POWER:
-        if (IS_MOVE_SPECIAL(move) && IsBattlerWeatherAffected(battlerAtk, B_WEATHER_SUN))
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_HUGE_POWER)
+     && IS_MOVE_PHYSICAL(move)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_PURE_POWER)
+     && IS_MOVE_PHYSICAL(move)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_SLOW_START)
+     && gDisableStructs[battlerAtk].slowStartTimer != 0) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_SOLAR_POWER)
+     && IS_MOVE_SPECIAL(move)
+     && IsBattlerWeatherAffected(battlerAtk, B_WEATHER_SUN)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_DEFEATIST)
+     && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 2)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_FLASH_FIRE)
+     && moveType == TYPE_FIRE
+     && gBattleResources->flags->flags[battlerAtk] & RESOURCE_FLAG_FLASH_FIRE) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_SWARM)
+     && moveType == TYPE_BUG
+     && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_TORRENT)
+     && moveType == TYPE_WATER
+     && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_BLAZE)
+     && moveType == TYPE_FIRE
+     && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_OVERGROW)
+     && moveType == TYPE_GRASS
+     && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_PLUS)
+     && IS_MOVE_SPECIAL(move)
+     && IsBattlerAlive(BATTLE_PARTNER(battlerAtk))) {
+        if (BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerAtk), ABILITY_MINUS)
+        || (B_PLUS_MINUS_INTERACTION >= GEN_5 && BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerAtk), ABILITY_PLUS)))
             modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_DEFEATIST:
-        if (gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 2))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
-        break;
-    case ABILITY_FLASH_FIRE:
-        if (moveType == TYPE_FIRE && gBattleResources->flags->flags[battlerAtk] & RESOURCE_FLAG_FLASH_FIRE)
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_MINUS)
+     && IS_MOVE_SPECIAL(move)
+     && IsBattlerAlive(BATTLE_PARTNER(battlerAtk))) {
+        if (BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerAtk), ABILITY_PLUS)
+        || (B_PLUS_MINUS_INTERACTION >= GEN_5 && BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerAtk), ABILITY_MINUS)))
             modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_SWARM:
-        if (moveType == TYPE_BUG && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_TORRENT:
-        if (moveType == TYPE_WATER && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_BLAZE:
-        if (moveType == TYPE_FIRE && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_OVERGROW:
-        if (moveType == TYPE_GRASS && gBattleMons[battlerAtk].hp <= (gBattleMons[battlerAtk].maxHP / 3))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_PLUS:
-        if (IS_MOVE_SPECIAL(move) && IsBattlerAlive(BATTLE_PARTNER(battlerAtk)))
-        {
-            u32 partnerAbility = GetBattlerAbility(BATTLE_PARTNER(battlerAtk));
-            if (partnerAbility == ABILITY_MINUS
-            || (B_PLUS_MINUS_INTERACTION >= GEN_5 && partnerAbility == ABILITY_PLUS))
-                modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        }
-        break;
-    case ABILITY_MINUS:
-        if (IS_MOVE_SPECIAL(move) && IsBattlerAlive(BATTLE_PARTNER(battlerAtk)))
-        {
-            u32 partnerAbility = GetBattlerAbility(BATTLE_PARTNER(battlerAtk));
-            if (partnerAbility == ABILITY_PLUS
-            || (B_PLUS_MINUS_INTERACTION >= GEN_5 && partnerAbility == ABILITY_MINUS))
-                modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        }
-        break;
-    case ABILITY_FLOWER_GIFT:
-        if (gBattleMons[battlerAtk].species == SPECIES_CHERRIM_SUNSHINE && IsBattlerWeatherAffected(battlerAtk, B_WEATHER_SUN) && IS_MOVE_PHYSICAL(move))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_HUSTLE:
-        if (IS_MOVE_PHYSICAL(move))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_STAKEOUT:
-        if (gDisableStructs[battlerDef].isFirstTurn == 2) // just switched in
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
-        break;
-    case ABILITY_GUTS:
-        if (gBattleMons[battlerAtk].status1 & STATUS1_ANY && IS_MOVE_PHYSICAL(move))
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
+    }
+
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_FLOWER_GIFT)
+     && gBattleMons[battlerAtk].species == SPECIES_CHERRIM_SUNSHINE
+     && IsBattlerWeatherAffected(battlerAtk, B_WEATHER_SUN)
+     && IS_MOVE_PHYSICAL(move)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_HUSTLE)
+     && IS_MOVE_PHYSICAL(move)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_STAKEOUT)
+     && gDisableStructs[battlerDef].isFirstTurn == 2) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
+    }
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_GUTS)
+     && gBattleMons[battlerAtk].status1 & STATUS1_ANY
+     && IS_MOVE_PHYSICAL(move)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
     }
 
     // target's abilities
-    switch (defAbility)
-    {
-    case ABILITY_THICK_FAT:
-        if (moveType == TYPE_FIRE || moveType == TYPE_ICE)
-        {
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
-            if (updateFlags)
-                RecordAbilityBattle(battlerDef, ABILITY_THICK_FAT);
-        }
-        break;
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_THICK_FAT)
+     && (moveType == TYPE_FIRE || moveType == TYPE_ICE)) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.5));
+        if (updateFlags)
+            RecordAbilityBattle(battlerDef, ABILITY_THICK_FAT);
     }
 
     // ally's abilities
     if (IsBattlerAlive(BATTLE_PARTNER(battlerAtk)))
     {
-        switch (GetBattlerAbility(BATTLE_PARTNER(battlerAtk)))
-        {
-        case ABILITY_FLOWER_GIFT:
-            if (gBattleMons[BATTLE_PARTNER(battlerAtk)].species == SPECIES_CHERRIM_SUNSHINE && IsBattlerWeatherAffected(BATTLE_PARTNER(battlerAtk), B_WEATHER_SUN) && IS_MOVE_PHYSICAL(move))
-                modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-            break;
+        if (BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerAtk), ABILITY_FLOWER_GIFT)
+         && gBattleMons[BATTLE_PARTNER(battlerAtk)].species == SPECIES_CHERRIM_SUNSHINE
+         && IsBattlerWeatherAffected(BATTLE_PARTNER(battlerAtk), B_WEATHER_SUN)
+         && IS_MOVE_PHYSICAL(move)) {
+            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
         }
     }
 
     // field abilities
-    if (IsAbilityOnField(ABILITY_VESSEL_OF_RUIN) && atkAbility != ABILITY_VESSEL_OF_RUIN && IS_MOVE_SPECIAL(move))
+    if (IsAbilityOnField(ABILITY_VESSEL_OF_RUIN)
+     && !BattlerHasAbilityOrInnate(battlerAtk, ABILITY_VESSEL_OF_RUIN)
+     && IS_MOVE_SPECIAL(move))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
-    if (IsAbilityOnField(ABILITY_TABLETS_OF_RUIN) && atkAbility != ABILITY_TABLETS_OF_RUIN && IS_MOVE_PHYSICAL(move))
+    if (IsAbilityOnField(ABILITY_TABLETS_OF_RUIN)
+    && !BattlerHasAbilityOrInnate(battlerAtk, ABILITY_TABLETS_OF_RUIN)
+    && IS_MOVE_PHYSICAL(move))
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
     // attacker's hold effect
