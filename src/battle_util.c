@@ -10052,55 +10052,62 @@ static inline uq4_12_t GetCollisionCourseElectroDriftModifier(u32 move, uq4_12_t
 
 static inline uq4_12_t GetAttackerAbilitiesModifier(u32 battlerAtk, uq4_12_t typeEffectivenessModifier, bool32 isCrit, u32 abilityAtk)
 {
-    switch (abilityAtk)
-    {
-    case ABILITY_NEUROFORCE:
-        if (typeEffectivenessModifier >= UQ_4_12(2.0))
-            return UQ_4_12(1.25);
-        break;
-    case ABILITY_SNIPER:
-        if (isCrit)
-            return UQ_4_12(1.5);
-        break;
-    case ABILITY_TINTED_LENS:
-        if (typeEffectivenessModifier <= UQ_4_12(0.5))
-            return UQ_4_12(2.0);
-        break;
-    }
-    return UQ_4_12(1.0);
+   uq4_12_t modifier = UQ_4_12(1.0);
+
+   if ((BattlerHasInnate(battlerAtk, ABILITY_NEUROFORCE) || abilityAtk == ABILITY_NEUROFORCE)
+    && typeEffectivenessModifier >= UQ_4_12(2.0)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(1.25));
+   }
+   if ((BattlerHasInnate(battlerAtk, ABILITY_SNIPER) || abilityAtk == ABILITY_SNIPER)
+    && isCrit) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(1.5));
+   }
+   if ((BattlerHasInnate(battlerAtk, ABILITY_TINTED_LENS) || abilityAtk == ABILITY_TINTED_LENS)
+    && typeEffectivenessModifier <= UQ_4_12(0.5)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(2.0));
+   }
+   return modifier;
 }
 
 static inline uq4_12_t GetDefenderAbilitiesModifier(u32 move, u32 moveType, u32 battlerAtk, u32 battlerDef, uq4_12_t typeEffectivenessModifier, u32 abilityDef)
 {
-    switch (abilityDef)
-    {
-    case ABILITY_MULTISCALE:
-    case ABILITY_SHADOW_SHIELD:
-        if (BATTLER_MAX_HP(battlerDef))
-            return UQ_4_12(0.5);
-        break;
-    case ABILITY_FILTER:
-    case ABILITY_SOLID_ROCK:
-    case ABILITY_PRISM_ARMOR:
-        if (typeEffectivenessModifier >= UQ_4_12(2.0))
-            return UQ_4_12(0.75);
-        break;
-    case ABILITY_FLUFFY:
-        if (!IsMoveMakingContact(move, battlerAtk) && moveType == TYPE_FIRE)
-            return UQ_4_12(2.0);
-        if (IsMoveMakingContact(move, battlerAtk) && moveType != TYPE_FIRE)
-            return UQ_4_12(0.5);
-        break;
-    case ABILITY_PUNK_ROCK:
-        if (gMovesInfo[move].soundMove)
-            return UQ_4_12(0.5);
-        break;
-    case ABILITY_ICE_SCALES:
-        if (IS_MOVE_SPECIAL(move))
-            return UQ_4_12(0.5);
-        break;
-    }
-    return UQ_4_12(1.0);
+   uq4_12_t modifier = UQ_4_12(1.0);
+
+   if ((BattlerHasInnate(battlerDef, ABILITY_MULTISCALE) || abilityDef == ABILITY_MULTISCALE)
+    && BATTLER_MAX_HP(battlerDef)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.5));
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_SHADOW_SHIELD) || abilityDef == ABILITY_SHADOW_SHIELD)
+    && BATTLER_MAX_HP(battlerDef)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.5));
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_FILTER) || abilityDef == ABILITY_FILTER)
+    && typeEffectivenessModifier >= UQ_4_12(2.0)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.75));
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_SOLID_ROCK) || abilityDef == ABILITY_SOLID_ROCK)
+    && typeEffectivenessModifier >= UQ_4_12(2.0)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.75));
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_PRISM_ARMOR) || abilityDef == ABILITY_PRISM_ARMOR)
+    && typeEffectivenessModifier >= UQ_4_12(2.0)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.75));
+   }
+   if (BattlerHasInnate(battlerDef, ABILITY_FLUFFY) || abilityDef == ABILITY_FLUFFY) {
+       if (!IsMoveMakingContact(move, battlerAtk) && moveType == TYPE_FIRE)
+           return UQ_4_12(2.0);
+       if (IsMoveMakingContact(move, battlerAtk) && moveType != TYPE_FIRE)
+           return UQ_4_12(0.5);
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_PUNK_ROCK) || abilityDef == ABILITY_PUNK_ROCK)
+    && gMovesInfo[move].soundMove) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.5));
+   }
+   if ((BattlerHasInnate(battlerDef, ABILITY_ICE_SCALES) || abilityDef == ABILITY_ICE_SCALES)
+    && IS_MOVE_SPECIAL(move)) {
+       modifier = uq4_12_multiply(modifier, UQ_4_12(0.5));
+   }
+   return modifier;
 }
 
 static inline uq4_12_t GetDefenderPartnerAbilitiesModifier(u32 battlerPartnerDef)
