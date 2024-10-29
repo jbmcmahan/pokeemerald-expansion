@@ -10874,11 +10874,11 @@ u16 GetBattleFormChangeTargetSpecies(u32 battler, u16 method)
                         targetSpecies = formChanges[i].targetSpecies;
                     break;
                 case FORM_CHANGE_BATTLE_SWITCH:
-                    if (formChanges[i].param1 == GetBattlerAbility(battler) || formChanges[i].param1 == ABILITY_NONE)
+                    if (BattlerHasAbilityOrInnate(battler, formChanges[i].param1) || formChanges[i].param1 == ABILITY_NONE)
                         targetSpecies = formChanges[i].targetSpecies;
                     break;
                 case FORM_CHANGE_BATTLE_HP_PERCENT:
-                    if (formChanges[i].param1 == GetBattlerAbility(battler))
+                    if (BattlerHasAbilityOrInnate(battler, formChanges[i].param1))
                     {
                         // We multiply by 100 to make sure that integer division doesn't mess with the health check.
                         u32 hpCheck = gBattleMons[battler].hp * 100 * 100 / gBattleMons[battler].maxHP;
@@ -10903,7 +10903,7 @@ u16 GetBattleFormChangeTargetSpecies(u32 battler, u16 method)
                     // Check if there is a required ability and if the battler's ability does not match it
                     // or is suppressed. If so, revert to the no weather form.
                     if (formChanges[i].param2
-                        && GetBattlerAbility(battler) != formChanges[i].param2
+                        && !BattlerHasAbilityOrInnate(battler, formChanges[i].param2)
                         && formChanges[i].param1 == B_WEATHER_NONE)
                     {
                         targetSpecies = formChanges[i].targetSpecies;
@@ -10923,7 +10923,7 @@ u16 GetBattleFormChangeTargetSpecies(u32 battler, u16 method)
                     break;
                 case FORM_CHANGE_BATTLE_TURN_END:
                 case FORM_CHANGE_HIT_BY_MOVE:
-                    if (formChanges[i].param1 == GetBattlerAbility(battler))
+                    if (BattlerHasAbilityOrInnate(battler, formChanges[i].param1))
                         targetSpecies = formChanges[i].targetSpecies;
                     break;
                 case FORM_CHANGE_STATUS:
@@ -11246,7 +11246,7 @@ bool32 CanFling(u32 battler)
     u16 item = gBattleMons[battler].item;
 
     if (item == ITEM_NONE
-      || (B_KLUTZ_FLING_INTERACTION >= GEN_5 && GetBattlerAbility(battler) == ABILITY_KLUTZ)
+      || (B_KLUTZ_FLING_INTERACTION >= GEN_5 && BattlerHasAbilityOrInnate(battler, ABILITY_KLUTZ))
       || gFieldStatuses & STATUS_FIELD_MAGIC_ROOM
       || gDisableStructs[battler].embargoTimer != 0
       || GetFlingPowerFromItemId(item) == 0
@@ -11390,7 +11390,7 @@ bool32 IsBattlerAffectedByHazards(u32 battler, bool32 toxicSpikes)
 
 bool32 TestIfSheerForceAffected(u32 battler, u16 move)
 {
-    return GetBattlerAbility(battler) == ABILITY_SHEER_FORCE && MoveIsAffectedBySheerForce(move);
+    return BattlerHasAbilityOrInnate(battler, ABILITY_SHEER_FORCE) && MoveIsAffectedBySheerForce(move);
 }
 
 // This function is the body of "jumpifstat", but can be used dynamically in a function
@@ -11401,7 +11401,7 @@ bool32 CompareStat(u32 battler, u8 statId, u8 cmpTo, u8 cmpKind)
 
     // Because this command is used as a way of checking if a stat can be lowered/raised,
     // we need to do some modification at run-time.
-    if (GetBattlerAbility(battler) == ABILITY_CONTRARY)
+    if (BattlerHasAbilityOrInnate(battler, ABILITY_CONTRARY))
     {
         if (cmpKind == CMP_GREATER_THAN)
             cmpKind = CMP_LESS_THAN;
@@ -11447,7 +11447,7 @@ bool32 CompareStat(u32 battler, u8 statId, u8 cmpTo, u8 cmpKind)
 
 void BufferStatChange(u32 battler, u8 statId, u8 stringId)
 {
-    bool32 hasContrary = (GetBattlerAbility(battler) == ABILITY_CONTRARY);
+    bool32 hasContrary = (BattlerHasAbilityOrInnate(battler, ABILITY_CONTRARY));
 
     PREPARE_STAT_BUFFER(gBattleTextBuff1, statId);
     if (stringId == STRINGID_STATFELL)
@@ -11619,7 +11619,7 @@ void RemoveConfusionStatus(u32 battler)
 
 static bool32 CanBeInfinitelyConfused(u32 battler)
 {
-    if  (GetBattlerAbility(battler) == ABILITY_OWN_TEMPO
+    if  (BattlerHasAbilityOrInnate(battler, ABILITY_OWN_TEMPO)
          || IsBattlerTerrainAffected(battler, STATUS_FIELD_MISTY_TERRAIN)
          || gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SAFEGUARD)
     {
@@ -11652,7 +11652,7 @@ bool32 AreBattlersOfSameGender(u32 battler1, u32 battler2)
 
 u32 CalcSecondaryEffectChance(u32 battler, u32 battlerAbility, const struct AdditionalEffect *additionalEffect)
 {
-    bool8 hasSereneGrace = (battlerAbility == ABILITY_SERENE_GRACE);
+    bool8 hasSereneGrace = (battlerAbility == ABILITY_SERENE_GRACE || BattlerHasInnate(battler, ABILITY_SERENE_GRACE));
     bool8 hasRainbow = (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_RAINBOW) != 0;
     u16 secondaryEffectChance = additionalEffect->chance;
 
@@ -11754,7 +11754,7 @@ bool8 CanMonParticipateInSkyBattle(struct Pokemon *mon)
     u16 species = GetMonData(mon, MON_DATA_SPECIES);
     u16 monAbilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM, NULL);
 
-    bool8 hasLevitateAbility = gSpeciesInfo[species].abilities[monAbilityNum] == ABILITY_LEVITATE;
+    bool8 hasLevitateAbility = gSpeciesInfo[species].abilities[monAbilityNum] == ABILITY_LEVITATE || SpeciesHasInnate(species, ABILITY_LEVITATE);
     bool8 isFlyingType = gSpeciesInfo[species].types[0] == TYPE_FLYING || gSpeciesInfo[species].types[1] == TYPE_FLYING;
     bool8 monIsValidAndNotEgg = GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES) && !GetMonData(mon, MON_DATA_IS_EGG);
 
