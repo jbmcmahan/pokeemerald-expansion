@@ -279,6 +279,7 @@ u8 GetBattlerType(u32 battler, u8 typeIndex, bool32 ignoreTera);
 bool8 CanMonParticipateInSkyBattle(struct Pokemon *mon);
 bool8 IsMonBannedFromSkyBattles(u16 species);
 void RemoveBattlerType(u32 battler, u8 type);
+bool32 BattlerHasInnate(u8 battlerId, u16 ability);
 bool32 BattlerHasAbilityOrInnate(u8 battlerId, u16 ability);
 
 #endif // GUARD_BATTLE_UTIL_H
