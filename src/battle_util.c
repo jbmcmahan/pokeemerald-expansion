@@ -9802,7 +9802,7 @@ static inline u32 CalcDefenseStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 
     if (isCrit && defStage > DEFAULT_STAT_STAGE)
         defStage = DEFAULT_STAT_STAGE;
     // pokemon with unaware ignore defense stat changes while dealing damage
-    if (atkAbility == ABILITY_UNAWARE)
+    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_UNAWARE))
         defStage = DEFAULT_STAT_STAGE;
     // certain moves also ignore stat changes
     if (gMovesInfo[move].ignoresTargetDefenseEvasionStages)
@@ -9815,59 +9815,53 @@ static inline u32 CalcDefenseStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 
     modifier = UQ_4_12(1.0);
 
     // target's abilities
-    switch (defAbility)
-    {
-    case ABILITY_MARVEL_SCALE:
-        if (gBattleMons[battlerDef].status1 & STATUS1_ANY && usesDefStat)
-        {
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-            if (updateFlags)
-                RecordAbilityBattle(battlerDef, ABILITY_MARVEL_SCALE);
-        }
-        break;
-    case ABILITY_FUR_COAT:
-        if (usesDefStat)
-        {
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
-            if (updateFlags)
-                RecordAbilityBattle(battlerDef, ABILITY_FUR_COAT);
-        }
-        break;
-    case ABILITY_GRASS_PELT:
-        if (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN && usesDefStat)
-        {
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-            if (updateFlags)
-                RecordAbilityBattle(battlerDef, ABILITY_GRASS_PELT);
-        }
-        break;
-    case ABILITY_FLOWER_GIFT:
-        if (gBattleMons[battlerDef].species == SPECIES_CHERRIM_SUNSHINE && IsBattlerWeatherAffected(battlerDef, B_WEATHER_SUN) && !usesDefStat)
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        break;
-    case ABILITY_PURIFYING_SALT:
-        if (moveType == TYPE_GHOST)
-            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
-        break;
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_MARVEL_SCALE)
+     && gBattleMons[battlerDef].status1 & STATUS1_ANY
+     && usesDefStat) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+        if (updateFlags)
+            RecordAbilityBattle(battlerDef, ABILITY_MARVEL_SCALE);
+    }
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_FUR_COAT)
+     && usesDefStat) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
+        if (updateFlags)
+            RecordAbilityBattle(battlerDef, ABILITY_FUR_COAT);
+    }
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_GRASS_PELT)
+     && gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN
+     && usesDefStat) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+        if (updateFlags)
+            RecordAbilityBattle(battlerDef, ABILITY_GRASS_PELT);
+    }
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_FLOWER_GIFT)
+     && gBattleMons[battlerDef].species == SPECIES_CHERRIM_SUNSHINE
+     && IsBattlerWeatherAffected(battlerDef, B_WEATHER_SUN)
+     && !usesDefStat) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
+    }
+    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_PURIFYING_SALT)
+     && moveType == TYPE_GHOST) {
+        modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
     }
 
     // ally's abilities
     if (IsBattlerAlive(BATTLE_PARTNER(battlerDef)))
     {
-        switch (GetBattlerAbility(BATTLE_PARTNER(battlerDef)))
-        {
-        case ABILITY_FLOWER_GIFT:
-            if (gBattleMons[BATTLE_PARTNER(battlerDef)].species == SPECIES_CHERRIM_SUNSHINE && IsBattlerWeatherAffected(BATTLE_PARTNER(battlerDef), B_WEATHER_SUN) && !usesDefStat)
-                modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-            break;
+        if (BattlerHasAbilityOrInnate(BATTLE_PARTNER(battlerDef), ABILITY_FLOWER_GIFT)
+         && gBattleMons[BATTLE_PARTNER(battlerDef)].species == SPECIES_CHERRIM_SUNSHINE
+         && IsBattlerWeatherAffected(battlerDef, B_WEATHER_SUN)
+         && !usesDefStat) {
+            modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
         }
     }
 
     // field abilities
-    if (IsAbilityOnField(ABILITY_SWORD_OF_RUIN) && defAbility != ABILITY_SWORD_OF_RUIN && usesDefStat)
+    if (IsAbilityOnField(ABILITY_SWORD_OF_RUIN) && !BattlerHasAbilityOrInnate(battlerDef, ABILITY_SWORD_OF_RUIN) && usesDefStat)
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
-    if (IsAbilityOnField(ABILITY_BEADS_OF_RUIN) && defAbility != ABILITY_BEADS_OF_RUIN && !usesDefStat)
+    if (IsAbilityOnField(ABILITY_BEADS_OF_RUIN) && !BattlerHasAbilityOrInnate(battlerDef, ABILITY_BEADS_OF_RUIN) && !usesDefStat)
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
     // target's hold effects
