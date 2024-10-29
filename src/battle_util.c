@@ -10609,17 +10609,17 @@ uq4_12_t GetTypeEffectiveness(struct Pokemon *mon, u8 moveType)
         if (type2 != type1)
             MulByTypeEffectiveness(&modifier, MOVE_POUND, moveType, 0, type2, 0, FALSE);
 
-        if ((modifier <= UQ_4_12(1.0)  &&  abilityDef == ABILITY_WONDER_GUARD)
-         || (moveType == TYPE_FIRE     &&  abilityDef == ABILITY_FLASH_FIRE)
-         || (moveType == TYPE_GRASS    &&  abilityDef == ABILITY_SAP_SIPPER)
-         || (moveType == TYPE_GROUND   && (abilityDef == ABILITY_LEVITATE
-                                       ||  abilityDef == ABILITY_EARTH_EATER))
-         || (moveType == TYPE_WATER    && (abilityDef == ABILITY_WATER_ABSORB
-                                       || abilityDef == ABILITY_DRY_SKIN
-                                       || abilityDef == ABILITY_STORM_DRAIN))
-         || (moveType == TYPE_ELECTRIC && (abilityDef == ABILITY_LIGHTNING_ROD // TODO: Add Gen 3/4 config check
-                                       || abilityDef == ABILITY_VOLT_ABSORB
-                                       || abilityDef == ABILITY_MOTOR_DRIVE)))
+        if ((modifier <= UQ_4_12(1.0)  &&  (abilityDef == ABILITY_WONDER_GUARD || SpeciesHasInnate(speciesDef, ABILITY_WONDER_GUARD)))
+         || (moveType == TYPE_FIRE     &&  (abilityDef == ABILITY_FLASH_FIRE || SpeciesHasInnate(speciesDef, ABILITY_FLASH_FIRE)))
+         || (moveType == TYPE_GRASS    &&  (abilityDef == ABILITY_SAP_SIPPER || SpeciesHasInnate(speciesDef, ABILITY_SAP_SIPPER)))
+         || (moveType == TYPE_GROUND   && (abilityDef == ABILITY_LEVITATE || SpeciesHasInnate(speciesDef, ABILITY_LEVITATE)
+                                       ||  abilityDef == ABILITY_EARTH_EATER || SpeciesHasInnate(speciesDef, ABILITY_EARTH_EATER)))
+         || (moveType == TYPE_WATER    && (abilityDef == ABILITY_WATER_ABSORB || SpeciesHasInnate(speciesDef, ABILITY_WATER_ABSORB)
+                                       || abilityDef == ABILITY_DRY_SKIN || SpeciesHasInnate(speciesDef, ABILITY_DRY_SKIN)
+                                       || abilityDef == ABILITY_STORM_DRAIN || SpeciesHasInnate(speciesDef, ABILITY_STORM_DRAIN)))
+         || (moveType == TYPE_ELECTRIC && (abilityDef == ABILITY_LIGHTNING_ROD || SpeciesHasInnate(speciesDef, ABILITY_LIGHTNING_ROD) // TODO: Add Gen 3/4 config check
+                                       || abilityDef == ABILITY_VOLT_ABSORB || SpeciesHasInnate(speciesDef, ABILITY_VOLT_ABSORB)
+                                       || abilityDef == ABILITY_MOTOR_DRIVE || SpeciesHasInnate(speciesDef, ABILITY_MOTOR_DRIVE))))
         {
             modifier = UQ_4_12(0.0);
         }
