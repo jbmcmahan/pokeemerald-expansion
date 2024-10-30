@@ -6751,6 +6751,7 @@ bool32 HasEnoughHpToEatBerry(u32 battler, u32 hpFraction, u32 itemId)
     if (hpFraction <= 4 && BattlerHasAbilityOrInnate(battler, ABILITY_GLUTTONY) && isBerry
          && gBattleMons[battler].hp <= gBattleMons[battler].maxHP / 2)
     {
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_GLUTTONY))
         RecordAbilityBattle(battler, ABILITY_GLUTTONY);
         return TRUE;
     }
