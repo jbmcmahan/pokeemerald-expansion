@@ -6614,10 +6614,10 @@ bool32 IsBattlerTerrainAffected(u32 battler, u32 terrainFlag)
 
 bool32 CanBeSlept(u32 battler, u32 ability)
 {
-    if (BattlerHasAbilityOrInnate(battler, ABILITY_INSOMNIA)
-     || BattlerHasAbilityOrInnate(battler, ABILITY_VITAL_SPIRIT)
-     || BattlerHasAbilityOrInnate(battler, ABILITY_COMATOSE)
-     || BattlerHasAbilityOrInnate(battler, ABILITY_PURIFYING_SALT)
+    if (ability == ABILITY_INSOMNIA
+     || ability == ABILITY_VITAL_SPIRIT
+     || ability == ABILITY_COMATOSE
+     || ability == ABILITY_PURIFYING_SALT
      || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_INSOMNIA)
      || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_VITAL_SPIRIT)
      || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_COMATOSE)
