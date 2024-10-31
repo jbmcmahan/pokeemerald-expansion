@@ -9810,7 +9810,7 @@ static inline u32 CalcDefenseStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 
     if (isCrit && defStage > DEFAULT_STAT_STAGE)
         defStage = DEFAULT_STAT_STAGE;
     // pokemon with unaware ignore defense stat changes while dealing damage
-    if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_UNAWARE))
+    if (atkAbility == ABILITY_UNAWARE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_UNAWARE))
         defStage = DEFAULT_STAT_STAGE;
     // certain moves also ignore stat changes
     if (gMovesInfo[move].ignoresTargetDefenseEvasionStages)
@@ -9823,33 +9823,33 @@ static inline u32 CalcDefenseStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 
     modifier = UQ_4_12(1.0);
 
     // target's abilities
-    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_MARVEL_SCALE)
+    if ((defAbility == ABILITY_MARVEL_SCALE || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_MARVEL_SCALE))
      && gBattleMons[battlerDef].status1 & STATUS1_ANY
      && usesDefStat) {
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        if (updateFlags)
+        if (updateFlags && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_MARVEL_SCALE))
             RecordAbilityBattle(battlerDef, ABILITY_MARVEL_SCALE);
     }
-    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_FUR_COAT)
+    if ((defAbility == ABILITY_FUR_COAT || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_FUR_COAT))
      && usesDefStat) {
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
-        if (updateFlags)
+        if (updateFlags && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_FUR_COAT))
             RecordAbilityBattle(battlerDef, ABILITY_FUR_COAT);
     }
-    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_GRASS_PELT)
+    if ((defAbility == ABILITY_GRASS_PELT || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_GRASS_PELT))
      && gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN
      && usesDefStat) {
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
-        if (updateFlags)
+        if (updateFlags && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_GRASS_PELT))
             RecordAbilityBattle(battlerDef, ABILITY_GRASS_PELT);
     }
-    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_FLOWER_GIFT)
+    if ((defAbility == ABILITY_FLOWER_GIFT || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_FLOWER_GIFT))
      && gBattleMons[battlerDef].species == SPECIES_CHERRIM_SUNSHINE
      && IsBattlerWeatherAffected(battlerDef, B_WEATHER_SUN)
      && !usesDefStat) {
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(1.5));
     }
-    if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_PURIFYING_SALT)
+    if ((defAbility == ABILITY_PURIFYING_SALT || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_PURIFYING_SALT))
      && moveType == TYPE_GHOST) {
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(2.0));
     }
@@ -9866,10 +9866,10 @@ static inline u32 CalcDefenseStat(u32 move, u32 battlerAtk, u32 battlerDef, u32 
     }
 
     // field abilities
-    if (IsAbilityOnField(ABILITY_SWORD_OF_RUIN) && !BattlerHasAbilityOrInnate(battlerDef, ABILITY_SWORD_OF_RUIN) && usesDefStat)
+    if (IsAbilityOnField(ABILITY_SWORD_OF_RUIN) && defAbility != ABILITY_SWORD_OF_RUIN && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_SWORD_OF_RUIN) && usesDefStat)
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
-    if (IsAbilityOnField(ABILITY_BEADS_OF_RUIN) && !BattlerHasAbilityOrInnate(battlerDef, ABILITY_BEADS_OF_RUIN) && !usesDefStat)
+    if (IsAbilityOnField(ABILITY_BEADS_OF_RUIN) && defAbility != ABILITY_BEADS_OF_RUIN && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_BEADS_OF_RUIN) && !usesDefStat)
         modifier = uq4_12_multiply_half_down(modifier, UQ_4_12(0.75));
 
     // target's hold effects
@@ -10443,7 +10443,7 @@ static inline void TryNoticeIllusionInTypeEffectiveness(u32 move, u32 moveType, 
     if (gSpeciesInfo[illusionSpecies].types[1] != gSpeciesInfo[illusionSpecies].types[0])
         MulByTypeEffectiveness(&presumedModifier, move, moveType, battlerDef, gSpeciesInfo[illusionSpecies].types[1], battlerAtk, FALSE);
 
-    if (presumedModifier != resultingModifier)
+    if (presumedModifier != resultingModifier && !SpeciesHasInnate(illusionSpecies, ABILITY_ILLUSION))
         RecordAbilityBattle(battlerDef, ABILITY_ILLUSION);
 }
 
@@ -10501,7 +10501,8 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(u32 move, u32 mov
             gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
             gLastLandedMoves[battlerDef] = 0;
             gBattleCommunication[MISS_TYPE] = B_MSG_GROUND_MISS;
-            RecordAbilityBattle(battlerDef, ABILITY_LEVITATE);
+            if (!BattlerHasInnate(battlerDef, ABILITY_LEVITATE))
+                RecordAbilityBattle(battlerDef, ABILITY_LEVITATE);
         }
     }
     else if (B_SHEER_COLD_IMMUNITY >= GEN_7 && move == MOVE_SHEER_COLD && IS_BATTLER_OF_TYPE(battlerDef, TYPE_ICE))
@@ -10516,7 +10517,7 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(u32 move, u32 mov
         modifier = UQ_4_12(1.0);
     }
 
-    if ((defAbility == ABILITY_WONDER_GUARD && modifier <= UQ_4_12(1.0))
+    if (((defAbility == ABILITY_WONDER_GUARD || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_WONDER_GUARD)) && modifier <= UQ_4_12(1.0))
         && gMovesInfo[move].power)
     {
         modifier = UQ_4_12(0.0);
@@ -10526,10 +10527,11 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(u32 move, u32 mov
             gMoveResultFlags |= MOVE_RESULT_MISSED;
             gLastLandedMoves[battlerDef] = 0;
             gBattleCommunication[MISS_TYPE] = B_MSG_AVOIDED_DMG;
-            RecordAbilityBattle(battlerDef, ABILITY_WONDER_GUARD);
+            if (!SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_WONDER_GUARD))
+                RecordAbilityBattle(battlerDef, ABILITY_WONDER_GUARD);
         }
     }
-    if ((defAbility == ABILITY_TELEPATHY && battlerDef == BATTLE_PARTNER(battlerAtk))
+    if (((defAbility == ABILITY_TELEPATHY || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_TELEPATHY)) && battlerDef == BATTLE_PARTNER(battlerAtk))
         && gMovesInfo[move].power)
     {
         modifier = UQ_4_12(0.0);
@@ -10539,7 +10541,8 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(u32 move, u32 mov
             gMoveResultFlags |= MOVE_RESULT_MISSED;
             gLastLandedMoves[battlerDef] = 0;
             gBattleCommunication[MISS_TYPE] = B_MSG_AVOIDED_DMG;
-            RecordAbilityBattle(battlerDef, ABILITY_TELEPATHY);
+            if (!SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_TELEPATHY))
+                RecordAbilityBattle(battlerDef, ABILITY_TELEPATHY);
         }
     }
 
