@@ -1131,7 +1131,7 @@ static bool32 NoTargetPresent(u8 battler, u32 move)
 static bool32 TryAegiFormChange(void)
 {
     // Only Aegislash with Stance Change can transform, transformed mons cannot.
-    if (GetBattlerAbility(gBattlerAttacker) != ABILITY_STANCE_CHANGE
+    if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_STANCE_CHANGE)
         || gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED)
         return FALSE;
 
@@ -1158,7 +1158,8 @@ static bool32 TryAegiFormChange(void)
 
 bool32 ProteanTryChangeType(u32 battler, u32 ability, u32 move, u32 moveType)
 {
-      if ((ability == ABILITY_PROTEAN || ability == ABILITY_LIBERO)
+      if ((ability == ABILITY_PROTEAN || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_PROTEAN)
+         || ability == ABILITY_LIBERO || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_LIBERO))
          && !gDisableStructs[gBattlerAttacker].usedProteanLibero
          && (gBattleMons[battler].types[0] != moveType || gBattleMons[battler].types[1] != moveType
              || (gBattleMons[battler].types[2] != moveType && gBattleMons[battler].types[2] != TYPE_MYSTERY))
@@ -1174,7 +1175,7 @@ bool32 ProteanTryChangeType(u32 battler, u32 ability, u32 move, u32 moveType)
 bool32 ShouldTeraShellDistortTypeMatchups(u32 move, u32 battlerDef)
 {
     if (!(gBattleStruct->distortedTypeMatchups & gBitTable[battlerDef])
-     && GetBattlerAbility(battlerDef) == ABILITY_TERA_SHELL
+     && BattlerHasAbilityOrInnate(battlerDef, ABILITY_TERA_SHELL)
      && gBattleMons[battlerDef].species == SPECIES_TERAPAGOS_TERASTAL
      && !IS_MOVE_STATUS(move)
      && !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
@@ -1195,6 +1196,7 @@ static void Cmd_attackcanceler(void)
 
     s32 i, moveType;
     u16 attackerAbility = GetBattlerAbility(gBattlerAttacker);
+    u16 species;
     GET_MOVE_TYPE(gCurrentMove, moveType);
 
     // Weight-based moves are blocked by Dynamax.
@@ -1240,7 +1242,7 @@ static void Cmd_attackcanceler(void)
     }
 
     if (gSpecialStatuses[gBattlerAttacker].parentalBondState == PARENTAL_BOND_OFF
-     && GetBattlerAbility(gBattlerAttacker) == ABILITY_PARENTAL_BOND
+     && BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_PARENTAL_BOND)
      && IsMoveAffectedByParentalBond(gCurrentMove, gBattlerAttacker)
      && !(gAbsentBattlerFlags & gBitTable[gBattlerTarget])
      && GetActiveGimmick(gBattlerAttacker) != GIMMICK_Z_MOVE)
@@ -1267,7 +1269,11 @@ static void Cmd_attackcanceler(void)
 
     if (AtkCanceller_UnableToUseMove2())
         return;
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0))
+    species = gBattleMons[gBattlerTarget].species;
+    if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0)
+     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[0], 0, 0)
+     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[1], 0, 0)
+     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[2], 0, 0))
         return;
     if (!gBattleMons[gBattlerAttacker].pp[gCurrMovePos] && gCurrentMove != MOVE_STRUGGLE
      && !(gHitMarker & (HITMARKER_ALLOW_NO_PP | HITMARKER_NO_ATTACKSTRING | HITMARKER_NO_PPDEDUCT))
@@ -1362,14 +1368,14 @@ static void Cmd_attackcanceler(void)
     {
         u32 battler = gBattlerTarget;
 
-        if (GetBattlerAbility(gBattlerTarget) == ABILITY_MAGIC_BOUNCE)
+        if (BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_MAGIC_BOUNCE))
         {
             battler = gBattlerTarget;
             gBattleStruct->bouncedMoveIsUsed = TRUE;
         }
         else if (IsDoubleBattle()
               && gMovesInfo[gCurrentMove].target == MOVE_TARGET_OPPONENTS_FIELD
-              && GetBattlerAbility(BATTLE_PARTNER(gBattlerTarget)) == ABILITY_MAGIC_BOUNCE)
+              && BattlerHasAbilityOrInnate(BATTLE_PARTNER(gBattlerTarget), ABILITY_MAGIC_BOUNCE))
         {
             gBattlerTarget = battler = BATTLE_PARTNER(gBattlerTarget);
             gBattleStruct->bouncedMoveIsUsed = TRUE;
@@ -1415,7 +1421,8 @@ static void Cmd_attackcanceler(void)
         gLastUsedAbility = ABILITY_LIGHTNING_ROD;
         BattleScriptPushCursor();
         gBattlescriptCurrInstr = BattleScript_TookAttack;
-        RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_LIGHTNING_ROD))
+            RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
     }
     else if (gSpecialStatuses[gBattlerTarget].stormDrainRedirected)
     {
@@ -1423,7 +1430,8 @@ static void Cmd_attackcanceler(void)
         gLastUsedAbility = ABILITY_STORM_DRAIN;
         BattleScriptPushCursor();
         gBattlescriptCurrInstr = BattleScript_TookAttack;
-        RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_STORM_DRAIN))
+            RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
     }
     else if (IsBattlerProtected(gBattlerAttacker, gBattlerTarget, gCurrentMove)
      && (gCurrentMove != MOVE_CURSE || IS_BATTLER_OF_TYPE(gBattlerAttacker, TYPE_GHOST))
