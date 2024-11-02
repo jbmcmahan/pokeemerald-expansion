@@ -1849,12 +1849,12 @@ static void Cmd_ppreduce(void)
         for (i = 0; i < gBattlersCount; i++)
         {
             if (GetBattlerSide(i) != GetBattlerSide(gBattlerAttacker) && IsBattlerAlive(i))
-                ppToDeduct += (GetBattlerAbility(i) == ABILITY_PRESSURE);
+                ppToDeduct += (GetBattlerAbility(i) == ABILITY_PRESSURE || SpeciesHasInnate(gBattleMons[i].species, ABILITY_PRESSURE));
         }
     }
     else if (moveTarget != MOVE_TARGET_OPPONENTS_FIELD)
     {
-        if (gBattlerAttacker != gBattlerTarget && GetBattlerAbility(gBattlerTarget) == ABILITY_PRESSURE)
+        if (gBattlerAttacker != gBattlerTarget && (GetBattlerAbility(gBattlerTarget) == ABILITY_PRESSURE || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_PRESSURE)))
              ppToDeduct++;
     }
 
@@ -1912,7 +1912,7 @@ s32 CalcCritChanceStageArgs(u32 battlerAtk, u32 battlerDef, u32 move, bool32 rec
     }
     else if (gStatuses3[battlerAtk] & STATUS3_LASER_FOCUS
         || gMovesInfo[move].alwaysCriticalHit
-        || (abilityAtk == ABILITY_MERCILESS && gBattleMons[battlerDef].status1 & STATUS1_PSN_ANY))
+        || ((abilityAtk == ABILITY_MERCILESS || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_MERCILESS)) && gBattleMons[battlerDef].status1 & STATUS1_PSN_ANY))
     {
         critChance = -2;
     }
@@ -1932,14 +1932,13 @@ s32 CalcCritChanceStageArgs(u32 battlerAtk, u32 battlerDef, u32 move, bool32 rec
             critChance = ARRAY_COUNT(sCriticalHitOdds) - 1;
     }
 
-    if (critChance != -1 && (abilityDef == ABILITY_BATTLE_ARMOR || abilityDef == ABILITY_SHELL_ARMOR))
+    if (critChance != -1 && (abilityDef == ABILITY_BATTLE_ARMOR || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_BATTLE_ARMOR)
+     || abilityDef == ABILITY_SHELL_ARMOR || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_SHELL_ARMOR)))
     {
         // Record ability only if move had 100% chance to get a crit
         if (recordAbility)
         {
-            if (critChance == -2)
-                RecordAbilityBattle(battlerDef, abilityDef);
-            else if (sCriticalHitOdds[critChance] == 1)
+            if ((critChance == -2 || sCriticalHitOdds[critChance] == 1) && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_BATTLE_ARMOR) && !SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_SHELL_ARMOR))
                 RecordAbilityBattle(battlerDef, abilityDef);
         }
         critChance = -1;
@@ -2034,12 +2033,13 @@ static void Cmd_adjustdamage(void)
         gBattleStruct->enduredDamage |= gBitTable[gBattlerTarget];
         goto END;
     }
-    if (GetBattlerAbility(gBattlerTarget) == ABILITY_ICE_FACE && IS_MOVE_PHYSICAL(gCurrentMove) && gBattleMons[gBattlerTarget].species == SPECIES_EISCUE)
+    if ((GetBattlerAbility(gBattlerTarget) == ABILITY_ICE_FACE || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_ICE_FACE)) && IS_MOVE_PHYSICAL(gCurrentMove) && gBattleMons[gBattlerTarget].species == SPECIES_EISCUE)
     {
         // Damage deals typeless 0 HP.
         gMoveResultFlags &= ~(MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE);
         gBattleMoveDamage = 0;
-        RecordAbilityBattle(gBattlerTarget, ABILITY_ICE_FACE);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_ICE_FACE))
+            RecordAbilityBattle(gBattlerTarget, ABILITY_ICE_FACE);
         gBattleResources->flags->flags[gBattlerTarget] |= RESOURCE_FLAG_ICE_FACE;
         // Form change will be done after attack animation in Cmd_resultmessage.
         goto END;
@@ -2057,9 +2057,11 @@ static void Cmd_adjustdamage(void)
         RecordItemEffectBattle(gBattlerTarget, holdEffect);
         gSpecialStatuses[gBattlerTarget].focusBanded = TRUE;
     }
-    else if (B_STURDY >= GEN_5 && GetBattlerAbility(gBattlerTarget) == ABILITY_STURDY && BATTLER_MAX_HP(gBattlerTarget))
+    else if (B_STURDY >= GEN_5 && (GetBattlerAbility(gBattlerTarget) == ABILITY_STURDY || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_STURDY))
+     && BATTLER_MAX_HP(gBattlerTarget))
     {
-        RecordAbilityBattle(gBattlerTarget, ABILITY_STURDY);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_STURDY))
+            RecordAbilityBattle(gBattlerTarget, ABILITY_STURDY);
         gSpecialStatuses[gBattlerTarget].sturdied = TRUE;
     }
     else if (holdEffect == HOLD_EFFECT_FOCUS_SASH && BATTLER_MAX_HP(gBattlerTarget))
@@ -2540,8 +2542,12 @@ static void Cmd_resultmessage(void)
 
     if (gMoveResultFlags & MOVE_RESULT_MISSED && (!(gMoveResultFlags & MOVE_RESULT_DOESNT_AFFECT_FOE) || gBattleCommunication[MISS_TYPE] > B_MSG_AVOIDED_ATK))
     {
-        if (gBattleCommunication[MISS_TYPE] > B_MSG_AVOIDED_ATK) // Wonder Guard or Levitate - show the ability pop-up
-            CreateAbilityPopUp(gBattlerTarget, gBattleMons[gBattlerTarget].ability, (gBattleTypeFlags & BATTLE_TYPE_DOUBLE) != 0);
+        if (gBattleCommunication[MISS_TYPE] == B_MSG_AVOIDED_DMG && (gBattleMons[gBattlerTarget].ability == ABILITY_WONDER_GUARD || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_WONDER_GUARD)))
+            CreateAbilityPopUp(gBattlerTarget, ABILITY_WONDER_GUARD, (gBattleTypeFlags & BATTLE_TYPE_DOUBLE) != 0);
+        else if (gBattleCommunication[MISS_TYPE] == B_MSG_AVOIDED_DMG && (gBattleMons[gBattlerTarget].ability == ABILITY_TELEPATHY || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_TELEPATHY)))
+            CreateAbilityPopUp(gBattlerTarget, ABILITY_TELEPATHY, (gBattleTypeFlags & BATTLE_TYPE_DOUBLE) != 0);
+        else if (gBattleCommunication[MISS_TYPE] == B_MSG_GROUND_MISS && (gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE || SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_LEVITATE)))
+            CreateAbilityPopUp(gBattlerTarget, ABILITY_LEVITATE, (gBattleTypeFlags & BATTLE_TYPE_DOUBLE) != 0);
         stringId = gMissStringIds[gBattleCommunication[MISS_TYPE]];
         gBattleCommunication[MSG_DISPLAY] = 1;
     }
