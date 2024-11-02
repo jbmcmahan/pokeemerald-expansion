@@ -1270,11 +1270,13 @@ static void Cmd_attackcanceler(void)
     if (AtkCanceller_UnableToUseMove2())
         return;
     species = gBattleMons[gBattlerTarget].species;
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0)
-     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[0], 0, 0)
-     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[1], 0, 0)
-     || AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[2], 0, 0))
+    if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0))
         return;
+    for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
+        if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[i], 0, 0)) {
+            return;
+        }
+    }
     if (!gBattleMons[gBattlerAttacker].pp[gCurrMovePos] && gCurrentMove != MOVE_STRUGGLE
      && !(gHitMarker & (HITMARKER_ALLOW_NO_PP | HITMARKER_NO_ATTACKSTRING | HITMARKER_NO_PPDEDUCT))
      && !(gBattleMons[gBattlerAttacker].status2 & STATUS2_MULTIPLETURNS))
@@ -1524,16 +1526,16 @@ static bool32 AccuracyCalcHelper(u16 move)
         return TRUE;
     }
     // If the attacker has the ability No Guard and they aren't targeting a Pokemon involved in a Sky Drop with the move Sky Drop, move hits.
-    else if (GetBattlerAbility(gBattlerAttacker) == ABILITY_NO_GUARD && (move != MOVE_SKY_DROP || gBattleStruct->skyDropTargets[gBattlerTarget] == 0xFF))
+    else if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_NO_GUARD) && (move != MOVE_SKY_DROP || gBattleStruct->skyDropTargets[gBattlerTarget] == 0xFF))
     {
-        if (!JumpIfMoveFailed(7, move))
+        if (!JumpIfMoveFailed(7, move) && SpeciesHasInnate(gBattleMons[gBattlerAttacker].species, ABILITY_NO_GUARD))
             RecordAbilityBattle(gBattlerAttacker, ABILITY_NO_GUARD);
         return TRUE;
     }
     // If the target has the ability No Guard and they aren't involved in a Sky Drop or the current move isn't Sky Drop, move hits.
-    else if (GetBattlerAbility(gBattlerTarget) == ABILITY_NO_GUARD && (move != MOVE_SKY_DROP || gBattleStruct->skyDropTargets[gBattlerTarget] == 0xFF))
+    else if (BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_NO_GUARD) && (move != MOVE_SKY_DROP || gBattleStruct->skyDropTargets[gBattlerTarget] == 0xFF))
     {
-        if (!JumpIfMoveFailed(7, move))
+        if (!JumpIfMoveFailed(7, move) && SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_NO_GUARD))
             RecordAbilityBattle(gBattlerTarget, ABILITY_NO_GUARD);
         return TRUE;
     }
