@@ -1610,12 +1610,14 @@ u32 GetTotalAccuracy(u32 battlerAtk, u32 battlerDef, u32 move, u32 atkAbility, u
     gPotentialItemEffectBattler = battlerDef;
     accStage = gBattleMons[battlerAtk].statStages[STAT_ACC];
     evasionStage = gBattleMons[battlerDef].statStages[STAT_EVASION];
-    if (atkAbility == ABILITY_UNAWARE || atkAbility == ABILITY_KEEN_EYE || atkAbility == ABILITY_MINDS_EYE
-            || (B_ILLUMINATE_EFFECT >= GEN_9 && atkAbility == ABILITY_ILLUMINATE))
+    if (atkAbility == ABILITY_UNAWARE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_UNAWARE)
+     || atkAbility == ABILITY_KEEN_EYE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_KEEN_EYE)
+     || atkAbility == ABILITY_MINDS_EYE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_MINDS_EYE)
+     || (B_ILLUMINATE_EFFECT >= GEN_9 && (atkAbility == ABILITY_ILLUMINATE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_ILLUMINATE))))
         evasionStage = DEFAULT_STAT_STAGE;
     if (gMovesInfo[move].ignoresTargetDefenseEvasionStages)
         evasionStage = DEFAULT_STAT_STAGE;
-    if (defAbility == ABILITY_UNAWARE)
+    if (defAbility == ABILITY_UNAWARE || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_UNAWARE))
         accStage = DEFAULT_STAT_STAGE;
 
     if (gBattleMons[battlerDef].status2 & STATUS2_FORESIGHT || gStatuses3[battlerDef] & STATUS3_MIRACLE_EYED)
@@ -1633,52 +1635,42 @@ u32 GetTotalAccuracy(u32 battlerAtk, u32 battlerDef, u32 move, u32 atkAbility, u
     if (IsBattlerWeatherAffected(battlerDef, B_WEATHER_SUN) && gMovesInfo[move].effect == EFFECT_THUNDER)
         moveAcc = 50;
     // Check Wonder Skin.
-    if (defAbility == ABILITY_WONDER_SKIN && IS_MOVE_STATUS(move) && moveAcc > 50)
+    if ((defAbility == ABILITY_WONDER_SKIN || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_WONDER_SKIN))
+     && IS_MOVE_STATUS(move) && moveAcc > 50)
         moveAcc = 50;
 
     calc = gAccuracyStageRatios[buff].dividend * moveAcc;
     calc /= gAccuracyStageRatios[buff].divisor;
 
     // Attacker's ability
-    switch (atkAbility)
-    {
-    case ABILITY_COMPOUND_EYES:
+    if (atkAbility == ABILITY_COMPOUND_EYES || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_COMPOUND_EYES))
         calc = (calc * 130) / 100; // 1.3 compound eyes boost
-        break;
-    case ABILITY_VICTORY_STAR:
+
+    if (atkAbility == ABILITY_VICTORY_STAR || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_VICTORY_STAR))
         calc = (calc * 110) / 100; // 1.1 victory star boost
-        break;
-    case ABILITY_HUSTLE:
-        if (IS_MOVE_PHYSICAL(move))
-            calc = (calc * 80) / 100; // 1.2 hustle loss
-        break;
+
+    if ((atkAbility == ABILITY_HUSTLE || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_HUSTLE))
+     && IS_MOVE_PHYSICAL(move)) {
+        calc = (calc * 80) / 100; // 1.2 hustle loss
     }
 
     // Target's ability
-    switch (defAbility)
-    {
-    case ABILITY_SAND_VEIL:
-        if (WEATHER_HAS_EFFECT && gBattleWeather & B_WEATHER_SANDSTORM)
-            calc = (calc * 80) / 100; // 1.2 sand veil loss
-        break;
-    case ABILITY_SNOW_CLOAK:
-        if (WEATHER_HAS_EFFECT && (gBattleWeather & (B_WEATHER_HAIL | B_WEATHER_SNOW)))
-            calc = (calc * 80) / 100; // 1.2 snow cloak loss
-        break;
-    case ABILITY_TANGLED_FEET:
-        if (gBattleMons[battlerDef].status2 & STATUS2_CONFUSION)
-            calc = (calc * 50) / 100; // 1.5 tangled feet loss
-        break;
-    }
+    if ((defAbility == ABILITY_SAND_VEIL || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_SAND_VEIL))
+     && (WEATHER_HAS_EFFECT && gBattleWeather & B_WEATHER_SANDSTORM))
+        calc = (calc * 80) / 100; // 1.2 sand veil loss
+
+    if ((defAbility == ABILITY_SNOW_CLOAK || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_SNOW_CLOAK))
+     && (WEATHER_HAS_EFFECT && (gBattleWeather & (B_WEATHER_HAIL | B_WEATHER_SNOW))))
+        calc = (calc * 80) / 100; // 1.2 snow cloak loss
+
+    if ((defAbility == ABILITY_TANGLED_FEET || SpeciesHasInnate(gBattleMons[battlerDef].species, ABILITY_TANGLED_FEET))
+     && (gBattleMons[battlerDef].status2 & STATUS2_CONFUSION))
+        calc = (calc * 50) / 100; // 1.5 tangled feet loss
 
     // Attacker's ally's ability
-    switch (atkAllyAbility)
-    {
-    case ABILITY_VICTORY_STAR:
-        if (IsBattlerAlive(atkAlly))
-            calc = (calc * 110) / 100; // 1.1 ally's victory star boost
-        break;
-    }
+    if ((atkAllyAbility == ABILITY_VICTORY_STAR || SpeciesHasInnate(gBattleMons[BATTLE_PARTNER(battlerAtk)].species, ABILITY_TANGLED_FEET))
+     && IsBattlerAlive(atkAlly))
+        calc = (calc * 110) / 100; // 1.1 ally's victory star boost
 
     // Attacker's hold effect
     switch (atkHoldEffect)
@@ -1702,7 +1694,7 @@ u32 GetTotalAccuracy(u32 battlerAtk, u32 battlerDef, u32 move, u32 atkAbility, u
 
     if (gBattleStruct->usedMicleBerry & 1u << battlerAtk)
     {
-        if (atkAbility == ABILITY_RIPEN)
+        if (atkAbility == ABILITY_RIPEN || SpeciesHasInnate(gBattleMons[battlerAtk].species, ABILITY_RIPEN))
             calc = (calc * 140) / 100;  // ripen gives 40% acc boost
         else
             calc = (calc * 120) / 100;  // 20% acc boost
