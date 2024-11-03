@@ -4155,7 +4155,7 @@ static void Cmd_jumpifability(void)
     {
     default:
         battler = GetBattlerForBattleScript(cmd->battler);
-        if (GetBattlerAbility(battler) == ability)
+        if (BattlerHasAbilityOrInnate(battler, ability))
             hasAbility = TRUE;
         break;
     case BS_ATTACKER_SIDE:
@@ -4180,7 +4180,8 @@ static void Cmd_jumpifability(void)
     {
         gLastUsedAbility = ability;
         gBattlescriptCurrInstr = cmd->jumpInstr;
-        RecordAbilityBattle(battler, gLastUsedAbility);
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ability))
+            RecordAbilityBattle(battler, gLastUsedAbility);
         gBattlerAbility = battler;
     }
     else
@@ -5288,15 +5289,17 @@ static void Cmd_playstatchangeanimation(void)
     u32 stats = cmd->stats;
 
     // Handle Contrary and Simple
-    if (ability == ABILITY_CONTRARY)
+    if (BattlerHasAbilityOrInnate(battler, ABILITY_CONTRARY))
     {
         flags ^= STAT_CHANGE_NEGATIVE;
-        RecordAbilityBattle(battler, ability);
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_CONTRARY))
+            RecordAbilityBattle(battler, ABILITY_CONTRARY);
     }
-    else if (ability == ABILITY_SIMPLE)
+    if (BattlerHasAbilityOrInnate(battler, ABILITY_SIMPLE))
     {
         flags |= STAT_CHANGE_BY_TWO;
-        RecordAbilityBattle(battler, ability);
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_SIMPLE))
+            RecordAbilityBattle(battler, ABILITY_SIMPLE);
     }
 
     if (flags & STAT_CHANGE_NEGATIVE) // goes down
@@ -5320,13 +5323,13 @@ static void Cmd_playstatchangeanimation(void)
                 }
                 else if (!gSideTimers[GetBattlerSide(battler)].mistTimer
                         && GetBattlerHoldEffect(battler, TRUE) != HOLD_EFFECT_CLEAR_AMULET
-                        && ability != ABILITY_CLEAR_BODY
-                        && ability != ABILITY_FULL_METAL_BODY
-                        && ability != ABILITY_WHITE_SMOKE
-                        && !((ability == ABILITY_KEEN_EYE || ability == ABILITY_MINDS_EYE) && currStat == STAT_ACC)
-                        && !(B_ILLUMINATE_EFFECT >= GEN_9 && ability == ABILITY_ILLUMINATE && currStat == STAT_ACC)
-                        && !(ability == ABILITY_HYPER_CUTTER && currStat == STAT_ATK)
-                        && !(ability == ABILITY_BIG_PECKS && currStat == STAT_DEF))
+                        && !BattlerHasAbilityOrInnate(battler, ABILITY_CLEAR_BODY)
+                        && !BattlerHasAbilityOrInnate(battler, ABILITY_FULL_METAL_BODY)
+                        && !BattlerHasAbilityOrInnate(battler, ABILITY_WHITE_SMOKE)
+                        && !((BattlerHasAbilityOrInnate(battler, ABILITY_KEEN_EYE) || BattlerHasAbilityOrInnate(battler, ABILITY_MINDS_EYE)) && currStat == STAT_ACC)
+                        && !(B_ILLUMINATE_EFFECT >= GEN_9 && BattlerHasAbilityOrInnate(battler, ABILITY_ILLUMINATE) && currStat == STAT_ACC)
+                        && !(BattlerHasAbilityOrInnate(battler, ABILITY_HYPER_CUTTER) && currStat == STAT_ATK)
+                        && !(BattlerHasAbilityOrInnate(battler, ABILITY_BIG_PECKS) && currStat == STAT_DEF))
                 {
                     if (gBattleMons[battler].statStages[currStat] > MIN_STAT_STAGE)
                     {
@@ -5396,7 +5399,7 @@ static bool32 TryKnockOffBattleScript(u32 battlerDef)
         && CanBattlerGetOrLoseItem(battlerDef, gBattleMons[battlerDef].item)
         && !NoAliveMonsForEitherParty())
     {
-        if (GetBattlerAbility(battlerDef) == ABILITY_STICKY_HOLD && IsBattlerAlive(battlerDef))
+        if (BattlerHasAbilityOrInnate(battlerDef, ABILITY_STICKY_HOLD) && IsBattlerAlive(battlerDef))
         {
             gBattlerAbility = battlerDef;
             BattleScriptPushCursor();
@@ -5408,7 +5411,7 @@ static bool32 TryKnockOffBattleScript(u32 battlerDef)
 
             gLastUsedItem = gBattleMons[battlerDef].item;
             gBattleMons[battlerDef].item = 0;
-            if (gBattleMons[battlerDef].ability != ABILITY_GORILLA_TACTICS)
+            if (!BattlerHasAbilityOrInnate(battlerDef, ABILITY_GORILLA_TACTICS))
                 gBattleStruct->choicedMove[battlerDef] = 0;
             CheckSetUnburden(battlerDef);
 
