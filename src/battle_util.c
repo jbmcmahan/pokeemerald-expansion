@@ -2457,7 +2457,7 @@ u8 DoBattlerEndTurnEffects(void)
                 gBattleStruct->turnEffectsTracker++;
                 break;
             }
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, ABILITYEFFECT_USE_INNATE, 0))
                 effect++;
             gBattleStruct->turnEffectsTracker++;
             break;
@@ -2468,7 +2468,7 @@ u8 DoBattlerEndTurnEffects(void)
                 gBattleStruct->turnEffectsTracker++;
                 break;
             }
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, ABILITYEFFECT_USE_INNATE, 0))
                 effect++;
             gBattleStruct->turnEffectsTracker++;
             break;
@@ -2479,7 +2479,7 @@ u8 DoBattlerEndTurnEffects(void)
                 gBattleStruct->turnEffectsTracker++;
                 break;
             }
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, 0, 0))
+            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, innate, ABILITYEFFECT_USE_INNATE, 0))
                 effect++;
             gBattleStruct->turnEffectsTracker++;
             break;
@@ -4151,6 +4151,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
     u32 side;
     u32 i, j;
     u32 partner;
+    u16 species;
     struct Pokemon *mon;
 
     if (gBattleTypeFlags & BATTLE_TYPE_SAFARI)
@@ -4159,10 +4160,10 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
     if (gBattlerAttacker >= gBattlersCount)
         gBattlerAttacker = battler;
 
-    if (special)
-        gLastUsedAbility = special;
-    else if (ability)
+    if (special == ABILITYEFFECT_USE_INNATE)
         gLastUsedAbility = ability;
+    else if (special)
+        gLastUsedAbility = special;
     else
         gLastUsedAbility = GetBattlerAbility(battler);
 
@@ -5288,7 +5289,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
             }
             else if (GetChosenMovePriority(gBattlerAttacker) > 0
                   && BlocksPrankster(move, gBattlerAttacker, gBattlerTarget, TRUE)
-                  && !(IS_MOVE_STATUS(move) && (gLastUsedAbility == ABILITY_MAGIC_BOUNCE || gProtectStructs[gBattlerTarget].bounceMove)))
+                  && !(IS_MOVE_STATUS(move) && (BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_BOUNCE) || gProtectStructs[gBattlerTarget].bounceMove)))
             {
                 if (!(gBattleTypeFlags & BATTLE_TYPE_DOUBLE) || !(moveTarget & (MOVE_TARGET_BOTH | MOVE_TARGET_FOES_AND_ALLY)))
                     CancelMultiTurnMoves(gBattlerAttacker); // Don't cancel moves that can hit two targets bc one target might not be protected
@@ -6139,111 +6140,115 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
          */
         for (battler = 0; battler < gBattlersCount; battler++)
         {
-            switch (GetBattlerAbility(battler))
-            {
-            case ABILITY_OPPORTUNIST:
-                if (gProtectStructs[battler].activateOpportunist == 2)
-                {
-                    gBattleScripting.animArg1 = 0;
-                    gBattleScripting.battler = battler;
-                    gProtectStructs[battler].activateOpportunist--;
-                    ChooseStatBoostAnimation(battler);
-                    BattleScriptPushCursorAndCallback(BattleScript_OpportunistCopyStatChange);
-                    effect = 1;
-                }
-                break;
+
+            if (BattlerHasAbilityOrInnate(battler, ABILITY_OPPORTUNIST)
+             && gProtectStructs[battler].activateOpportunist == 2) {
+                gBattleScripting.animArg1 = 0;
+                gBattleScripting.battler = battler;
+                gProtectStructs[battler].activateOpportunist--;
+                ChooseStatBoostAnimation(battler);
+                BattleScriptPushCursorAndCallback(BattleScript_OpportunistCopyStatChange);
+                effect = 1;
             }
         }
         break;
     case ABILITYEFFECT_IMMUNITY:
         for (battler = 0; battler < gBattlersCount; battler++)
         {
-            switch (GetBattlerAbility(battler))
-            {
-            case ABILITY_IMMUNITY:
-            case ABILITY_PASTEL_VEIL:
-                if (gBattleMons[battler].status1 & (STATUS1_POISON | STATUS1_TOXIC_POISON | STATUS1_TOXIC_COUNTER))
-                {
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_PoisonJpn);
-                    effect = 1;
-                }
-                break;
-            case ABILITY_OWN_TEMPO:
-                if (gBattleMons[battler].status2 & STATUS2_CONFUSION)
-                {
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_ConfusionJpn);
-                    effect = 2;
-                }
-                break;
-            case ABILITY_LIMBER:
-                if (gBattleMons[battler].status1 & STATUS1_PARALYSIS)
-                {
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_ParalysisJpn);
-                    effect = 1;
-                }
-                break;
-            case ABILITY_INSOMNIA:
-            case ABILITY_VITAL_SPIRIT:
-                if (gBattleMons[battler].status1 & STATUS1_SLEEP)
-                {
-                    gBattleMons[battler].status2 &= ~STATUS2_NIGHTMARE;
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_SleepJpn);
-                    effect = 1;
-                }
-                break;
-            case ABILITY_WATER_VEIL:
-            case ABILITY_WATER_BUBBLE:
-                if (gBattleMons[battler].status1 & STATUS1_BURN)
-                {
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_BurnJpn);
-                    effect = 1;
-                }
-                break;
-            case ABILITY_MAGMA_ARMOR:
-                if (gBattleMons[battler].status1 & (STATUS1_FREEZE | STATUS1_FROSTBITE))
-                {
-                    StringCopy(gBattleTextBuff1, gStatusConditionString_IceJpn);
-                    effect = 1;
-                }
-                break;
-            case ABILITY_OBLIVIOUS:
-                if (gBattleMons[battler].status2 & STATUS2_INFATUATION)
-                    effect = 3;
-                else if (gDisableStructs[battler].tauntTimer != 0)
-                    effect = 4;
-                break;
-            }
+            for (i = 0; i < NUM_INNATE_PER_SPECIES + 1; i++) {
+                species = gBattleMons[battler].species;
+                if (i == 0)
+                    gLastUsedAbility = GetBattlerAbility(battler);
+                else
+                    gLastUsedAbility = gSpeciesInfo[species].innates[i - 1];
 
-            if (effect != 0)
-            {
-                switch (effect)
+                switch (gLastUsedAbility)
                 {
-                case 1: // status cleared
-                    gBattleMons[battler].status1 = 0;
-                    BattleScriptPushCursor();
-                    gBattlescriptCurrInstr = BattleScript_AbilityCuredStatus;
+                case ABILITY_IMMUNITY:
+                case ABILITY_PASTEL_VEIL:
+                    if (gBattleMons[battler].status1 & (STATUS1_POISON | STATUS1_TOXIC_POISON | STATUS1_TOXIC_COUNTER))
+                    {
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_PoisonJpn);
+                        effect = 1;
+                    }
                     break;
-                case 2: // get rid of confusion
-                    RemoveConfusionStatus(battler);
-                    BattleScriptPushCursor();
-                    gBattlescriptCurrInstr = BattleScript_AbilityCuredStatus;
+                case ABILITY_OWN_TEMPO:
+                    if (gBattleMons[battler].status2 & STATUS2_CONFUSION)
+                    {
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_ConfusionJpn);
+                        effect = 2;
+                    }
                     break;
-                case 3: // get rid of infatuation
-                    gBattleMons[battler].status2 &= ~STATUS2_INFATUATION;
-                    BattleScriptPushCursor();
-                    gBattlescriptCurrInstr = BattleScript_BattlerGotOverItsInfatuation;
+                case ABILITY_LIMBER:
+                    if (gBattleMons[battler].status1 & STATUS1_PARALYSIS)
+                    {
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_ParalysisJpn);
+                        effect = 1;
+                    }
                     break;
-                case 4: // get rid of taunt
-                    gDisableStructs[battler].tauntTimer = 0;
-                    BattleScriptPushCursor();
-                    gBattlescriptCurrInstr = BattleScript_BattlerShookOffTaunt;
+                case ABILITY_INSOMNIA:
+                case ABILITY_VITAL_SPIRIT:
+                    if (gBattleMons[battler].status1 & STATUS1_SLEEP)
+                    {
+                        gBattleMons[battler].status2 &= ~STATUS2_NIGHTMARE;
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_SleepJpn);
+                        effect = 1;
+                    }
+                    break;
+                case ABILITY_WATER_VEIL:
+                case ABILITY_WATER_BUBBLE:
+                    if (gBattleMons[battler].status1 & STATUS1_BURN)
+                    {
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_BurnJpn);
+                        effect = 1;
+                    }
+                    break;
+                case ABILITY_MAGMA_ARMOR:
+                    if (gBattleMons[battler].status1 & (STATUS1_FREEZE | STATUS1_FROSTBITE))
+                    {
+                        StringCopy(gBattleTextBuff1, gStatusConditionString_IceJpn);
+                        effect = 1;
+                    }
+                    break;
+                case ABILITY_OBLIVIOUS:
+                    if (gBattleMons[battler].status2 & STATUS2_INFATUATION)
+                        effect = 3;
+                    else if (gDisableStructs[battler].tauntTimer != 0)
+                        effect = 4;
                     break;
                 }
 
-                gBattleScripting.battler = gBattlerAbility = battler;
-                BtlController_EmitSetMonData(battler, BUFFER_A, REQUEST_STATUS_BATTLE, 0, 4, &gBattleMons[battler].status1);
-                MarkBattlerForControllerExec(battler);
-                return effect;
+                if (effect != 0)
+                {
+                    switch (effect)
+                    {
+                    case 1: // status cleared
+                        gBattleMons[battler].status1 = 0;
+                        BattleScriptPushCursor();
+                        gBattlescriptCurrInstr = BattleScript_AbilityCuredStatus;
+                        break;
+                    case 2: // get rid of confusion
+                        RemoveConfusionStatus(battler);
+                        BattleScriptPushCursor();
+                        gBattlescriptCurrInstr = BattleScript_AbilityCuredStatus;
+                        break;
+                    case 3: // get rid of infatuation
+                        gBattleMons[battler].status2 &= ~STATUS2_INFATUATION;
+                        BattleScriptPushCursor();
+                        gBattlescriptCurrInstr = BattleScript_BattlerGotOverItsInfatuation;
+                        break;
+                    case 4: // get rid of taunt
+                        gDisableStructs[battler].tauntTimer = 0;
+                        BattleScriptPushCursor();
+                        gBattlescriptCurrInstr = BattleScript_BattlerShookOffTaunt;
+                        break;
+                    }
+
+                    gBattleScripting.battler = gBattlerAbility = battler;
+                    BtlController_EmitSetMonData(battler, BUFFER_A, REQUEST_STATUS_BATTLE, 0, 4, &gBattleMons[battler].status1);
+                    MarkBattlerForControllerExec(battler);
+                    return effect;
+                }
             }
         }
         break;
@@ -11914,12 +11919,12 @@ static inline bool32 DoesBattlerHaveAbilityImmunity(u32 battlerDef)
 
     return (AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, 0, 0, 0)
          || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, 0, 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[0], 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[1], 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[2], 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[0], 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[1], 0, 0)
-         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[2], 0, 0));
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[0], ABILITYEFFECT_USE_INNATE, 0)
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[1], ABILITYEFFECT_USE_INNATE, 0)
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_BLOCK, battlerDef, gSpeciesInfo[species].innates[2], ABILITYEFFECT_USE_INNATE, 0)
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[0], ABILITYEFFECT_USE_INNATE, 0)
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[1], ABILITYEFFECT_USE_INNATE, 0)
+         || AbilityBattleEffects(ABILITYEFFECT_WOULD_ABSORB, battlerDef, gSpeciesInfo[species].innates[2], ABILITYEFFECT_USE_INNATE, 0));
 }
 
 bool32 TargetFullyImmuneToCurrMove(u32 battlerAtk, u32 battlerDef)

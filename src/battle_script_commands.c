@@ -1273,7 +1273,7 @@ static void Cmd_attackcanceler(void)
     if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0))
         return;
     for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
-        if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[i], 0, 0)) {
+        if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, gSpeciesInfo[species].innates[i], ABILITYEFFECT_USE_INNATE, 0)) {
             return;
         }
     }
@@ -1739,7 +1739,7 @@ static void AccuracyCheck(bool32 recalcDragonDarts, const u8 *nextInstr, const u
             else
                 AbilityBattleEffects(ABILITYEFFECT_ABSORBING, gBattlerTarget, 0, 0, gCurrentMove);
                 for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
-                    AbilityBattleEffects(ABILITYEFFECT_ABSORBING, gBattlerTarget, gSpeciesInfo[speciesDef].innates[i], 0, gCurrentMove);
+                    AbilityBattleEffects(ABILITYEFFECT_ABSORBING, gBattlerTarget, gSpeciesInfo[speciesDef].innates[i], ABILITYEFFECT_USE_INNATE, gCurrentMove);
                 }
         }
     }
@@ -5285,7 +5285,6 @@ static void Cmd_playstatchangeanimation(void)
     u32 startingStatAnimId = 0;
     u32 flags = cmd->flags;
     u32 battler = GetBattlerForBattleScript(cmd->battler);
-    u32 ability = GetBattlerAbility(battler);
     u32 stats = cmd->stats;
 
     // Handle Contrary and Simple
@@ -5435,7 +5434,7 @@ static bool32 TryKnockOffBattleScript(u32 battlerDef)
 }
 
 #define SYMBIOSIS_CHECK(battler, ally)                             \
-    GetBattlerAbility(ally) == ABILITY_SYMBIOSIS                   \
+    BattlerHasAbilityOrInnate(ally, ABILITY_SYMBIOSIS)             \
     && gBattleMons[battler].item == ITEM_NONE                      \
     && gBattleMons[ally].item != ITEM_NONE                         \
     && CanBattlerGetOrLoseItem(battler, gBattleMons[ally].item)    \
@@ -5468,6 +5467,8 @@ static void Cmd_moveend(void)
     u32 holdEffectAtk = 0;
     u32 endMode, endState;
     u32 originallyUsedMove;
+    u16 speciesTarget = gBattleMons[gBattlerTarget].species;
+    u16 speciesAttacker = gBattleMons[gBattlerAttacker].species;
 
     if (gChosenMove == MOVE_UNAVAILABLE)
         originallyUsedMove = MOVE_NONE;
@@ -5493,7 +5494,7 @@ static void Cmd_moveend(void)
             {
                 if (gProtectStructs[gBattlerTarget].spikyShielded
                  && gMovesInfo[gCurrentMove].effect != EFFECT_COUNTER
-                 && GetBattlerAbility(gBattlerAttacker) != ABILITY_MAGIC_GUARD)
+                 && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGIC_GUARD))
                 {
                     gProtectStructs[gBattlerAttacker].touchedProtectLike = FALSE;
                     gBattleMoveDamage = GetNonDynamaxMaxHP(gBattlerAttacker) / 8;
@@ -5647,7 +5648,7 @@ static void Cmd_moveend(void)
                    || gMovesInfo[gCurrentMove].effect == EFFECT_MIND_BLOWN)
                   && IsBattlerAlive(gBattlerAttacker)
                   && !(gMoveResultFlags & MOVE_RESULT_FAILED)
-                  && GetBattlerAbility(gBattlerAttacker) != ABILITY_MAGIC_GUARD)
+                  && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGIC_GUARD))
             {
                 gBattleMoveDamage = (GetNonDynamaxMaxHP(gBattlerAttacker) + 1) / 2; // Half of Max HP Rounded UP
                 BattleScriptPushCursor();
@@ -5664,6 +5665,10 @@ static void Cmd_moveend(void)
         case MOVEEND_SYNCHRONIZE_TARGET: // target synchronize
             if (AbilityBattleEffects(ABILITYEFFECT_SYNCHRONIZE, gBattlerTarget, 0, 0, 0))
                 effect = TRUE;
+            for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
+                if (AbilityBattleEffects(ABILITYEFFECT_SYNCHRONIZE, gBattlerTarget, gSpeciesInfo[speciesTarget].innates[i], ABILITYEFFECT_USE_INNATE, 0))
+                    effect = TRUE;
+            }
             gBattleScripting.moveendState++;
             break;
         case MOVEEND_ABILITIES: // Such as abilities activating on contact(Poison Spore, Rough Skin, etc.).
@@ -5671,8 +5676,38 @@ static void Cmd_moveend(void)
                 effect = TRUE;
             gBattleScripting.moveendState++;
             break;
+        case MOVEEND_INNATE1:
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END, gBattlerTarget, gSpeciesInfo[speciesTarget].innates[0], ABILITYEFFECT_USE_INNATE, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
+        case MOVEEND_INNATE2:
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END, gBattlerTarget, gSpeciesInfo[speciesTarget].innates[1], ABILITYEFFECT_USE_INNATE, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
+        case MOVEEND_INNATE3:
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END, gBattlerTarget, gSpeciesInfo[speciesTarget].innates[2], ABILITYEFFECT_USE_INNATE, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
         case MOVEEND_ABILITIES_ATTACKER: // Poison Touch, possibly other in the future
             if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, gBattlerAttacker, 0, 0, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
+        case MOVEEND_INNATE1_ATTACKER: // Poison Touch, possibly other in the future
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, gBattlerAttacker, gSpeciesInfo[speciesAttacker].innates[0], ABILITYEFFECT_USE_INNATE, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
+        case MOVEEND_INNATE2_ATTACKER: // Poison Touch, possibly other in the future
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, gBattlerAttacker, gSpeciesInfo[speciesAttacker].innates[1], ABILITYEFFECT_USE_INNATE, 0))
+                effect = TRUE;
+            gBattleScripting.moveendState++;
+            break;
+        case MOVEEND_INNATE3_ATTACKER: // Poison Touch, possibly other in the future
+            if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, gBattlerAttacker, gSpeciesInfo[speciesAttacker].innates[2], ABILITYEFFECT_USE_INNATE, 0))
                 effect = TRUE;
             gBattleScripting.moveendState++;
             break;
@@ -5691,13 +5726,17 @@ static void Cmd_moveend(void)
         case MOVEEND_SYNCHRONIZE_ATTACKER: // attacker synchronize
             if (AbilityBattleEffects(ABILITYEFFECT_ATK_SYNCHRONIZE, gBattlerAttacker, 0, 0, 0))
                 effect = TRUE;
+            for (i = 0; i < NUM_INNATE_PER_SPECIES; i++) {
+                if (AbilityBattleEffects(ABILITYEFFECT_ATK_SYNCHRONIZE, gBattlerAttacker, gSpeciesInfo[speciesAttacker].innates[i], ABILITYEFFECT_USE_INNATE, 0))
+                    effect = TRUE;
+            }
             gBattleScripting.moveendState++;
             break;
         case MOVEEND_CHOICE_MOVE: // update choice band move
             {
                 u16 *choicedMoveAtk = &gBattleStruct->choicedMove[gBattlerAttacker];
                 if (gHitMarker & HITMARKER_OBEYS
-                 && (HOLD_EFFECT_CHOICE(holdEffectAtk) || GetBattlerAbility(gBattlerAttacker) == ABILITY_GORILLA_TACTICS)
+                 && (HOLD_EFFECT_CHOICE(holdEffectAtk) || BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_GORILLA_TACTICS))
                  && gChosenMove != MOVE_STRUGGLE
                  && (*choicedMoveAtk == MOVE_NONE || *choicedMoveAtk == MOVE_UNAVAILABLE))
                 {
@@ -6139,7 +6178,7 @@ static void Cmd_moveend(void)
         // 5. Life Orb / Shell Bell
         // 6. Pickpocket
         case MOVEEND_MAGICIAN:
-            if (GetBattlerAbility(gBattlerAttacker) == ABILITY_MAGICIAN
+            if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGICIAN)
               && gCurrentMove != MOVE_FLING && gCurrentMove != MOVE_NATURAL_GIFT
               && gBattleMons[gBattlerAttacker].item == ITEM_NONE
               && gBattleMons[gBattlerTarget].item != ITEM_NONE
@@ -6150,7 +6189,7 @@ static void Cmd_moveend(void)
               && !(gWishFutureKnock.knockedOffMons[GetBattlerSide(gBattlerTarget)] & gBitTable[gBattlerPartyIndexes[gBattlerTarget]])
               && !DoesSubstituteBlockMove(gBattlerAttacker, gBattlerTarget, gCurrentMove)
               && !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
-              && (GetBattlerAbility(gBattlerTarget) != ABILITY_STICKY_HOLD || !IsBattlerAlive(gBattlerTarget)))
+              && (!BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_STICKY_HOLD) || !IsBattlerAlive(gBattlerTarget)))
             {
                 StealTargetItem(gBattlerAttacker, gBattlerTarget);
                 gBattleScripting.battler = gBattlerAbility = gBattlerAttacker;
@@ -6260,7 +6299,7 @@ static void Cmd_moveend(void)
                   && (gMovesInfo[gCurrentMove].effect != EFFECT_HIT_SWITCH_TARGET || gBattleStruct->hitSwitchTargetFailed)
                   && IsBattlerAlive(gBattlerAttacker)
                   && !TestIfSheerForceAffected(gBattlerAttacker, gCurrentMove)
-                  && GetBattlerAbility(gBattlerAttacker) != ABILITY_GUARD_DOG)
+                  && !BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_GUARD_DOG))
                 {
                     // Since we check if battler was damaged, we don't need to check move result.
                     // In fact, doing so actually prevents multi-target moves from activating red card properly
@@ -6314,7 +6353,7 @@ static void Cmd_moveend(void)
                     u8 battler = battlers[i];
                     // Attacker is mon who made contact, battler is mon with pickpocket
                     if (battler != gBattlerAttacker                                                     // Cannot pickpocket yourself
-                      && GetBattlerAbility(battler) == ABILITY_PICKPOCKET                               // Target must have pickpocket ability
+                      && BattlerHasAbilityOrInnate(battler, ABILITY_PICKPOCKET)                         // Target must have pickpocket ability
                       && BATTLER_TURN_DAMAGED(battler)                                                  // Target needs to have been damaged
                       && !DoesSubstituteBlockMove(gBattlerAttacker, battler, gCurrentMove)              // Subsitute unaffected
                       && IsBattlerAlive(battler)                                                        // Battler must be alive to pickpocket
@@ -6323,7 +6362,7 @@ static void Cmd_moveend(void)
                     {
                         gBattlerTarget = gBattlerAbility = battler;
                         // Battle scripting is super brittle so we shall do the item exchange now (if possible)
-                        if (GetBattlerAbility(gBattlerAttacker) != ABILITY_STICKY_HOLD)
+                        if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_STICKY_HOLD))
                             StealTargetItem(gBattlerTarget, gBattlerAttacker);  // Target takes attacker's item
 
                         gEffectBattler = gBattlerAttacker;
@@ -6365,7 +6404,7 @@ static void Cmd_moveend(void)
                     }
                     for (battler = 0; battler < gBattlersCount; battler++)
                     {
-                        if (GetBattlerAbility(battler) == ABILITY_DANCER && !gSpecialStatuses[battler].dancerUsedMove)
+                        if (BattlerHasAbilityOrInnate(battler, ABILITY_DANCER) && !gSpecialStatuses[battler].dancerUsedMove)
                         {
                             if (!nextDancer || (gBattleMons[battler].speed < gBattleMons[nextDancer & 0x3].speed))
                                 nextDancer = battler | 0x4;
@@ -6413,7 +6452,7 @@ static void Cmd_moveend(void)
                     && SYMBIOSIS_CHECK(i, BATTLE_PARTNER(i)))
                 {
                     BestowItem(BATTLE_PARTNER(i), i);
-                    gLastUsedAbility = gBattleMons[BATTLE_PARTNER(i)].ability;
+                    gLastUsedAbility = ABILITY_SYMBIOSIS;
                     gBattleScripting.battler = gBattlerAbility = BATTLE_PARTNER(i);
                     gBattlerAttacker = i;
                     BattleScriptPushCursor();
