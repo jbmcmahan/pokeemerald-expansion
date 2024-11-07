@@ -282,5 +282,7 @@ bool8 IsMonBannedFromSkyBattles(u16 species);
 void RemoveBattlerType(u32 battler, u8 type);
 bool32 BattlerHasInnate(u8 battlerId, u16 ability);
 bool32 BattlerHasAbilityOrInnate(u8 battlerId, u16 ability);
+u32 GetBattlerInnateNum(u8 battlerId, u16 ability);
+u32 GetBattlerAbilityOrInnateNum(u8 battlerId, u16 ability);
 
 #endif // GUARD_BATTLE_UTIL_H

@@ -7288,8 +7288,10 @@ static void UpdateSentMonFlags(u32 battler)
 static bool32 DoSwitchInEffectsForBattler(u32 battler)
 {
     u32 i = 0;
+    u32 j = 0;
+    u16 species;
     // Neutralizing Gas announces itself before hazards
-    if (gBattleMons[battler].ability == ABILITY_NEUTRALIZING_GAS && gSpecialStatuses[battler].announceNeutralizingGas == 0)
+    if ((gBattleMons[battler].ability == ABILITY_NEUTRALIZING_GAS || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_NEUTRALIZING_GAS)) && gSpecialStatuses[battler].announceNeutralizingGas == 0)
     {
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SWITCHIN_NEUTRALIZING_GAS;
         gSpecialStatuses[battler].announceNeutralizingGas = TRUE;
@@ -7317,7 +7319,7 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
     }
     else if (!(gDisableStructs[battler].spikesDone)
         && (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SPIKES)
-        && GetBattlerAbility(battler) != ABILITY_MAGIC_GUARD
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD)
         && IsBattlerAffectedByHazards(battler, FALSE)
         && IsBattlerGrounded(battler))
     {
@@ -7332,7 +7334,7 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
     else if (!(gDisableStructs[battler].stealthRockDone)
         && (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_STEALTH_ROCK)
         && IsBattlerAffectedByHazards(battler, FALSE)
-        && GetBattlerAbility(battler) != ABILITY_MAGIC_GUARD)
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD))
     {
         gDisableStructs[battler].stealthRockDone = TRUE;
         gBattleMoveDamage = GetStealthHazardDamage(gMovesInfo[MOVE_STEALTH_ROCK].type, battler);
@@ -7358,8 +7360,8 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
             i = GetBattlerAbility(battler);
             if (!(gBattleMons[battler].status1 & STATUS1_ANY)
                 && !IS_BATTLER_OF_TYPE(battler, TYPE_STEEL)
-                && i != ABILITY_IMMUNITY
-                && i != ABILITY_PURIFYING_SALT
+                && !BattlerHasAbilityOrInnate(battler, ABILITY_IMMUNITY)
+                && !BattlerHasAbilityOrInnate(battler, ABILITY_PURIFYING_SALT)
                 && !IsAbilityOnSide(battler, ABILITY_PASTEL_VEIL)
                 && !(gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SAFEGUARD)
                 && !(gFieldStatuses & STATUS_FIELD_MISTY_TERRAIN))
@@ -7391,7 +7393,7 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
     else if (!(gDisableStructs[battler].steelSurgeDone)
         && (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_STEELSURGE)
         && IsBattlerAffectedByHazards(battler, FALSE)
-        && GetBattlerAbility(battler) != ABILITY_MAGIC_GUARD)
+        && !BattlerHasAbilityOrInnate(battler, ABILITY_MAGIC_GUARD))
     {
         gDisableStructs[battler].steelSurgeDone = TRUE;
         gBattleMoveDamage = GetStealthHazardDamage(gMovesInfo[MOVE_G_MAX_STEELSURGE].type, battler);
@@ -7412,9 +7414,10 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
     else
     {
         u32 battlerAbility = GetBattlerAbility(battler);
+        species = gBattleMons[battler].species;
         // There is a hack here to ensure the truant counter will be 0 when the battler's next turn starts.
         // The truant counter is not updated in the case where a mon switches in after a lost judgment in the battle arena.
-        if (battlerAbility == ABILITY_TRUANT
+        if (BattlerHasAbilityOrInnate(battler, ABILITY_TRUANT)
             && gCurrentActionFuncId != B_ACTION_USE_MOVE
             && !gDisableStructs[battler].truantSwitchInHack)
             gDisableStructs[battler].truantCounter = 1;
@@ -7425,6 +7428,10 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
             return TRUE;
         else if (AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, 0, 0, 0))
             return TRUE;
+        for (j = 1; j < NUM_INNATE_PER_SPECIES; j++) {
+            if (AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, gSpeciesInfo[species].innates[j], ABILITYEFFECT_USE_INNATE, 0))
+                return TRUE;
+        }
 
         for (i = 0; i < gBattlersCount; i++)
         {
@@ -7444,6 +7451,31 @@ static bool32 DoSwitchInEffectsForBattler(u32 battler)
                 if (AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, i, 0, 0, 0))
                     return TRUE;
                 break;
+            }
+        }
+
+        for (j = 1; j < NUM_INNATE_PER_SPECIES; j++) {
+
+            for (i = 0; i < gBattlersCount; i++)
+            {
+                species = gBattleMons[i].species;
+                if (i == battler)
+                    continue;
+
+                switch (gSpeciesInfo[species].innates[j])
+                {
+                case ABILITY_TRACE:
+                    if (AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, i, gSpeciesInfo[species].innates[j], ABILITYEFFECT_USE_INNATE, 0))
+                        return TRUE;
+                    break;
+                case ABILITY_FORECAST:
+                case ABILITY_FLOWER_GIFT:
+                case ABILITY_ICE_FACE:
+                case ABILITY_PROTOSYNTHESIS:
+                    if (AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, i, gSpeciesInfo[species].innates[j], ABILITYEFFECT_USE_INNATE, 0))
+                        return TRUE;
+                    break;
+                }
             }
         }
 
@@ -9425,6 +9457,10 @@ static void Cmd_various(void)
     {
         VARIOUS_ARGS();
         gSpecialStatuses[battler].switchInAbilityDone = FALSE;
+        gSpecialStatuses[battler].switchInAbilityOrInnateDone[0] = FALSE;
+        gSpecialStatuses[battler].switchInAbilityOrInnateDone[1] = FALSE;
+        gSpecialStatuses[battler].switchInAbilityOrInnateDone[2] = FALSE;
+        gSpecialStatuses[battler].switchInAbilityOrInnateDone[3] = FALSE;
         break;
     }
     case VARIOUS_UPDATE_CHOICE_MOVE_ON_LVL_UP:
