@@ -1638,6 +1638,10 @@ static void TryToRevertMimicryAndFlags(void)
     for (i = 0; i < gBattlersCount; i++)
     {
         gDisableStructs[i].terrainAbilityDone = FALSE;
+        gDisableStructs[i].terrainAbilityOrInnateDone[0] = FALSE;
+        gDisableStructs[i].terrainAbilityOrInnateDone[1] = FALSE;
+        gDisableStructs[i].terrainAbilityOrInnateDone[2] = FALSE;
+        gDisableStructs[i].terrainAbilityOrInnateDone[3] = FALSE;
         if (BattlerHasAbilityOrInnate(i, ABILITY_MIMICRY))
             RESTORE_BATTLER_TYPE(i);
     }
@@ -1993,7 +1997,10 @@ u8 DoFieldEndTurnEffects(void)
                 {
                     gBattleWeather &= ~B_WEATHER_SUN_TEMPORARY;
                     for (i = 0; i < gBattlersCount; i++)
-                        gDisableStructs[i].weatherAbilityDone = FALSE;
+                        gDisableStructs[i].weatherAbilityOrInnateDone[0] = FALSE;
+                        gDisableStructs[i].weatherAbilityOrInnateDone[1] = FALSE;
+                        gDisableStructs[i].weatherAbilityOrInnateDone[2] = FALSE;
+                        gDisableStructs[i].weatherAbilityOrInnateDone[3] = FALSE;
                     gBattlescriptCurrInstr = BattleScript_SunlightFaded;
                 }
                 else
@@ -3981,6 +3988,10 @@ static bool32 TryChangeBattleTerrain(u32 battler, u32 statusFlag, u8 *timer)
         gFieldStatuses &= ~(STATUS_FIELD_TERRAIN_ANY | STATUS_FIELD_TERRAIN_PERMANENT);
         gFieldStatuses |= statusFlag;
         gDisableStructs[battler].terrainAbilityDone = FALSE;
+        gDisableStructs[battler].terrainAbilityOrInnateDone[0] = FALSE;
+        gDisableStructs[battler].terrainAbilityOrInnateDone[1] = FALSE;
+        gDisableStructs[battler].terrainAbilityOrInnateDone[2] = FALSE;
+        gDisableStructs[battler].terrainAbilityOrInnateDone[3] = FALSE;
 
         if (GetBattlerHoldEffect(battler, TRUE) == HOLD_EFFECT_TERRAIN_EXTENDER)
             *timer = 8;
@@ -6299,7 +6310,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
         // Prints message only. separate from ABILITYEFFECT_ON_SWITCHIN bc activates before entry hazards
         for (i = 0; i < gBattlersCount; i++)
         {
-            if (gBattleMons[i].ability == ABILITY_NEUTRALIZING_GAS && !(gBattleResources->flags->flags[i] & RESOURCE_FLAG_NEUTRALIZING_GAS))
+            if ((gBattleMons[i].ability == ABILITY_NEUTRALIZING_GAS || SpeciesHasInnate(gBattleMons[i].species, ABILITY_NEUTRALIZING_GAS)) && !(gBattleResources->flags->flags[i] & RESOURCE_FLAG_NEUTRALIZING_GAS))
             {
                 gBattleResources->flags->flags[i] |= RESOURCE_FLAG_NEUTRALIZING_GAS;
                 gBattlerAbility = i;
@@ -6342,7 +6353,6 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
         }
         break;
     case ABILITYEFFECT_ON_WEATHER: // For ability effects that activate when the battle weather changes.
-        gLastUsedAbility = GetBattlerAbility(battler);
         switch (gLastUsedAbility)
         {
         case ABILITY_FORECAST:
@@ -6370,12 +6380,12 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
             }
             break;
         case ABILITY_PROTOSYNTHESIS:
-            if (!gDisableStructs[battler].weatherAbilityDone 
+            if (!gDisableStructs[battler].weatherAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)]
              && (gBattleWeather & B_WEATHER_SUN) && WEATHER_HAS_EFFECT
              && !(gBattleMons[battler].status2 & STATUS2_TRANSFORMED)
              && !(gBattleStruct->boosterEnergyActivates & (1u << battler)))
             {
-                gDisableStructs[battler].weatherAbilityDone = TRUE;
+                gDisableStructs[battler].weatherAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)] = TRUE;
                 PREPARE_STAT_BUFFER(gBattleTextBuff1, GetHighestStatId(battler));
                 gBattleScripting.battler = battler;
                 BattleScriptPushCursorAndCallback(BattleScript_ProtosynthesisActivates);
@@ -6389,9 +6399,9 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
         switch (gLastUsedAbility)
         {
         case ABILITY_MIMICRY:
-            if (!gDisableStructs[battler].terrainAbilityDone && ChangeTypeBasedOnTerrain(battler))
+            if (!gDisableStructs[battler].terrainAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)] && ChangeTypeBasedOnTerrain(battler))
             {
-                gDisableStructs[battler].terrainAbilityDone = TRUE;
+                gDisableStructs[battler].terrainAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)] = TRUE;
                 ChangeTypeBasedOnTerrain(battler);
                 gBattlerAbility = gBattleScripting.battler = battler;
                 BattleScriptPushCursorAndCallback(BattleScript_MimicryActivates_End3);
@@ -6399,12 +6409,12 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
             }
             break;
         case ABILITY_QUARK_DRIVE:
-            if (!gDisableStructs[battler].terrainAbilityDone
+            if (!gDisableStructs[battler].terrainAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)]
              && gFieldStatuses & STATUS_FIELD_ELECTRIC_TERRAIN
              && !(gBattleMons[battler].status2 & STATUS2_TRANSFORMED)
              && !(gBattleStruct->boosterEnergyActivates & (1u << battler)))
             {
-                gDisableStructs[battler].terrainAbilityDone = TRUE;
+                gDisableStructs[battler].terrainAbilityOrInnateDone[GetBattlerAbilityOrInnateNum(battler, gLastUsedAbility)] = TRUE;
                 PREPARE_STAT_BUFFER(gBattleTextBuff1, GetHighestStatId(battler));
                 gBattlerAbility = gBattleScripting.battler = battler;
                 BattleScriptPushCursorAndCallback(BattleScript_QuarkDriveActivates);
