@@ -11631,7 +11631,7 @@ bool8 UproarWakeUpCheck(u8 battler)
 
     for (i = 0; i < gBattlersCount; i++)
     {
-        if (!(gBattleMons[i].status2 & STATUS2_UPROAR) || (GetBattlerAbility(battler) == ABILITY_SOUNDPROOF && B_UPROAR_IGNORE_SOUNDPROOF < GEN_5))
+        if (!(gBattleMons[i].status2 & STATUS2_UPROAR) || (BattlerHasAbilityOrInnate(battler, ABILITY_SOUNDPROOF) && B_UPROAR_IGNORE_SOUNDPROOF < GEN_5))
             continue;
 
         gBattleScripting.battler = i;
@@ -11873,18 +11873,19 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
         notProtectAffected++;
     flags &= ~STAT_CHANGE_NOT_PROTECT_AFFECTED;
 
-    if (battlerAbility == ABILITY_CONTRARY)
+    if (BattlerHasAbilityOrInnate(battler, ABILITY_CONTRARY))
     {
         statValue ^= STAT_BUFF_NEGATIVE;
         gBattleScripting.statChanger ^= STAT_BUFF_NEGATIVE;
-        RecordAbilityBattle(battler, battlerAbility);
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_CONTRARY))
+            RecordAbilityBattle(battler, battlerAbility);
         if (flags & STAT_CHANGE_UPDATE_MOVE_EFFECT)
         {
             flags &= ~STAT_CHANGE_UPDATE_MOVE_EFFECT;
             gBattleScripting.moveEffect = ReverseStatChangeMoveEffect(gBattleScripting.moveEffect);
         }
     }
-    else if (battlerAbility == ABILITY_SIMPLE)
+    if (BattlerHasAbilityOrInnate(battler, ABILITY_SIMPLE))
     {
         statValue = (SET_STAT_BUFF_VALUE(GET_STAT_BUFF_VALUE(statValue) * 2)) | ((statValue <= -1) ? STAT_BUFF_NEGATIVE : 0);
     }
@@ -11895,7 +11896,7 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
     {
         if (gSideTimers[GetBattlerSide(battler)].mistTimer
             && !certain && gCurrentMove != MOVE_CURSE
-            && !(battler == gBattlerTarget && GetBattlerAbility(gBattlerAttacker) == ABILITY_INFILTRATOR))
+            && !(battler == gBattlerTarget && BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_INFILTRATOR)))
         {
             if (flags == STAT_CHANGE_ALLOW_PTR)
             {
