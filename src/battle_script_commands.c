@@ -11920,8 +11920,11 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
             gBattlescriptCurrInstr = BattleScript_ButItFailed;
             return STAT_CHANGE_DIDNT_WORK;
         }
-        else if ((battlerHoldEffect == HOLD_EFFECT_CLEAR_AMULET || CanAbilityPreventStatLoss(battlerAbility))
-              && (!affectsUser || mirrorArmored) && !certain && gCurrentMove != MOVE_CURSE)
+        else if ((battlerHoldEffect == HOLD_EFFECT_CLEAR_AMULET || CanAbilityPreventStatLoss(battlerAbility)
+             || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_CLEAR_BODY)
+             || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_FULL_METAL_BODY)
+             || SpeciesHasInnate(gBattleMons[battler].species, ABILITY_WHITE_SMOKE))
+             && (!affectsUser || mirrorArmored) && !certain && gCurrentMove != MOVE_CURSE)
         {
             if (flags == STAT_CHANGE_ALLOW_PTR)
             {
@@ -11939,13 +11942,29 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
                         gBattlescriptCurrInstr = BattleScript_ItemNoStatLoss;
                         RecordItemEffectBattle(battler, HOLD_EFFECT_CLEAR_AMULET);
                     }
-                    else
-                    {
+                    else if (BattlerHasAbilityOrInnate(battler, ABILITY_CLEAR_BODY)) {
                         gBattlerAbility = battler;
                         BattleScriptPush(BS_ptr);
                         gBattlescriptCurrInstr = BattleScript_AbilityNoStatLoss;
-                        gLastUsedAbility = battlerAbility;
-                        RecordAbilityBattle(battler, gLastUsedAbility);
+                        gLastUsedAbility = ABILITY_CLEAR_BODY;
+                        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_CLEAR_BODY))
+                            RecordAbilityBattle(battler, gLastUsedAbility);
+                    }
+                    else if (BattlerHasAbilityOrInnate(battler, ABILITY_FULL_METAL_BODY)) {
+                        gBattlerAbility = battler;
+                        BattleScriptPush(BS_ptr);
+                        gBattlescriptCurrInstr = BattleScript_AbilityNoStatLoss;
+                        gLastUsedAbility = ABILITY_FULL_METAL_BODY;
+                        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_FULL_METAL_BODY))
+                            RecordAbilityBattle(battler, gLastUsedAbility);
+                    }
+                    else if (BattlerHasAbilityOrInnate(battler, ABILITY_WHITE_SMOKE)) {
+                        gBattlerAbility = battler;
+                        BattleScriptPush(BS_ptr);
+                        gBattlescriptCurrInstr = BattleScript_AbilityNoStatLoss;
+                        gLastUsedAbility = ABILITY_WHITE_SMOKE;
+                        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_WHITE_SMOKE))
+                            RecordAbilityBattle(battler, gLastUsedAbility);
                     }
                     gSpecialStatuses[battler].statLowered = TRUE;
                 }
@@ -11973,23 +11992,64 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
             return STAT_CHANGE_DIDNT_WORK;
         }
         else if (!certain
-                && (((battlerAbility == ABILITY_KEEN_EYE || battlerAbility == ABILITY_MINDS_EYE) && statId == STAT_ACC)
-                || (B_ILLUMINATE_EFFECT >= GEN_9 && battlerAbility == ABILITY_ILLUMINATE && statId == STAT_ACC)
-                || (battlerAbility == ABILITY_HYPER_CUTTER && statId == STAT_ATK)
-                || (battlerAbility == ABILITY_BIG_PECKS && statId == STAT_DEF)))
+                && (((BattlerHasAbilityOrInnate(battler, ABILITY_KEEN_EYE) || BattlerHasAbilityOrInnate(battler, ABILITY_MINDS_EYE)) && statId == STAT_ACC)
+                || (B_ILLUMINATE_EFFECT >= GEN_9 && BattlerHasAbilityOrInnate(battler, ABILITY_ILLUMINATE) && statId == STAT_ACC)
+                || (BattlerHasAbilityOrInnate(battler, ABILITY_HYPER_CUTTER) && statId == STAT_ATK)
+                || (BattlerHasAbilityOrInnate(battler, ABILITY_BIG_PECKS) && statId == STAT_DEF)))
         {
-            if (flags == STAT_CHANGE_ALLOW_PTR)
+            if (flags == STAT_CHANGE_ALLOW_PTR && BattlerHasAbilityOrInnate(battler, ABILITY_KEEN_EYE) && statId == STAT_ACC)
             {
                 BattleScriptPush(BS_ptr);
                 gBattleScripting.battler = battler;
                 gBattlerAbility = battler;
                 gBattlescriptCurrInstr = BattleScript_AbilityNoSpecificStatLoss;
-                gLastUsedAbility = battlerAbility;
-                RecordAbilityBattle(battler, gLastUsedAbility);
+                gLastUsedAbility = ABILITY_KEEN_EYE;
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_KEEN_EYE))
+                    RecordAbilityBattle(battler, gLastUsedAbility);
+            }
+            else if (flags == STAT_CHANGE_ALLOW_PTR && BattlerHasAbilityOrInnate(battler, ABILITY_MINDS_EYE) && statId == STAT_ACC)
+            {
+                BattleScriptPush(BS_ptr);
+                gBattleScripting.battler = battler;
+                gBattlerAbility = battler;
+                gBattlescriptCurrInstr = BattleScript_AbilityNoSpecificStatLoss;
+                gLastUsedAbility = ABILITY_MINDS_EYE;
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_MINDS_EYE))
+                    RecordAbilityBattle(battler, gLastUsedAbility);
+            }
+            else if (flags == STAT_CHANGE_ALLOW_PTR && B_ILLUMINATE_EFFECT >= GEN_9 && BattlerHasAbilityOrInnate(battler, ABILITY_ILLUMINATE) && statId == STAT_ACC)
+            {
+                BattleScriptPush(BS_ptr);
+                gBattleScripting.battler = battler;
+                gBattlerAbility = battler;
+                gBattlescriptCurrInstr = BattleScript_AbilityNoSpecificStatLoss;
+                gLastUsedAbility = ABILITY_ILLUMINATE;
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_ILLUMINATE))
+                    RecordAbilityBattle(battler, gLastUsedAbility);
+            }
+            else if (flags == STAT_CHANGE_ALLOW_PTR && BattlerHasAbilityOrInnate(battler, ABILITY_HYPER_CUTTER) && statId == STAT_ATK)
+            {
+                BattleScriptPush(BS_ptr);
+                gBattleScripting.battler = battler;
+                gBattlerAbility = battler;
+                gBattlescriptCurrInstr = BattleScript_AbilityNoSpecificStatLoss;
+                gLastUsedAbility = ABILITY_HYPER_CUTTER;
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_HYPER_CUTTER))
+                    RecordAbilityBattle(battler, gLastUsedAbility);
+            }
+            else if (flags == STAT_CHANGE_ALLOW_PTR && BattlerHasAbilityOrInnate(battler, ABILITY_BIG_PECKS) && statId == STAT_DEF)
+            {
+                BattleScriptPush(BS_ptr);
+                gBattleScripting.battler = battler;
+                gBattlerAbility = battler;
+                gBattlescriptCurrInstr = BattleScript_AbilityNoSpecificStatLoss;
+                gLastUsedAbility = ABILITY_BIG_PECKS;
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_BIG_PECKS))
+                    RecordAbilityBattle(battler, gLastUsedAbility);
             }
             return STAT_CHANGE_DIDNT_WORK;
         }
-        else if (battlerAbility == ABILITY_MIRROR_ARMOR && !affectsUser && !mirrorArmored && gBattlerAttacker != gBattlerTarget && battler == gBattlerTarget)
+        else if (BattlerHasAbilityOrInnate(battler, ABILITY_MIRROR_ARMOR) && !affectsUser && !mirrorArmored && gBattlerAttacker != gBattlerTarget && battler == gBattlerTarget)
         {
             if (flags == STAT_CHANGE_ALLOW_PTR)
             {
@@ -11998,7 +12058,8 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
                 gBattleScripting.battler = battler;
                 gBattlerAbility = battler;
                 gBattlescriptCurrInstr = BattleScript_MirrorArmorReflect;
-                RecordAbilityBattle(battler, gBattleMons[battler].ability);
+                if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_MIRROR_ARMOR))
+                    RecordAbilityBattle(battler, gBattleMons[battler].ability);
             }
             return STAT_CHANGE_DIDNT_WORK;
         }
