@@ -15068,7 +15068,7 @@ static void Cmd_pickup(void)
 
             ability = gSpeciesInfo[species].abilities[GetMonData(&gPlayerParty[i], MON_DATA_ABILITY_NUM)];
 
-            if (ability == ABILITY_PICKUP
+            if ((ability == ABILITY_PICKUP || SpeciesHasInnate(species, ABILITY_PICKUP))
                 && species != SPECIES_NONE
                 && species != SPECIES_EGG
                 && heldItem == ITEM_NONE
@@ -15095,7 +15095,7 @@ static void Cmd_pickup(void)
                     }
                 }
             }
-            else if (ability == ABILITY_HONEY_GATHER
+            else if ((ability == ABILITY_HONEY_GATHER || SpeciesHasInnate(species, ABILITY_HONEY_GATHER))
                 && species != 0
                 && species != SPECIES_EGG
                 && heldItem == ITEM_NONE)
@@ -15192,7 +15192,7 @@ bool32 DoesSubstituteBlockMove(u32 battlerAtk, u32 battlerDef, u32 move)
         return FALSE;
     else if (gMovesInfo[move].ignoresSubstitute)
         return FALSE;
-    else if (GetBattlerAbility(battlerAtk) == ABILITY_INFILTRATOR)
+    else if (BattlerHasAbilityOrInnate(battlerAtk, ABILITY_INFILTRATOR))
         return FALSE;
     else
         return TRUE;
@@ -15204,7 +15204,7 @@ bool32 DoesDisguiseBlockMove(u32 battler, u32 move)
         || gBattleMons[battler].status2 & STATUS2_TRANSFORMED
         || (!gProtectStructs[battler].confusionSelfDmg && (IS_MOVE_STATUS(move) || gHitMarker & HITMARKER_PASSIVE_DAMAGE))
         || gHitMarker & HITMARKER_IGNORE_DISGUISE
-        || GetBattlerAbility(battler) != ABILITY_DISGUISE)
+        || !BattlerHasAbilityOrInnate(battler, ABILITY_DISGUISE))
         return FALSE;
     else
         return TRUE;
@@ -15226,7 +15226,7 @@ static void Cmd_tryrecycleitem(void)
 
     u16 *usedHeldItem;
 
-    if (gCurrentMove == MOVE_NONE && GetBattlerAbility(gBattlerAttacker) == ABILITY_PICKUP)
+    if (gCurrentMove == MOVE_NONE && BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_PICKUP))
         usedHeldItem = &gBattleStruct->usedHeldItems[gBattlerPartyIndexes[gBattlerTarget]][GetBattlerSide(gBattlerTarget)];
     else
         usedHeldItem = &gBattleStruct->usedHeldItems[gBattlerPartyIndexes[gBattlerAttacker]][GetBattlerSide(gBattlerAttacker)];
@@ -16965,7 +16965,7 @@ void BS_TryRelicSong(void)
 {
     NATIVE_ARGS();
 
-    if (GetBattlerAbility(gBattlerAttacker) != ABILITY_SHEER_FORCE && !(gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED)
+    if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_SHEER_FORCE) && !(gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED)
         && (gBattleMons[gBattlerAttacker].species == SPECIES_MELOETTA_ARIA || gBattleMons[gBattlerAttacker].species == SPECIES_MELOETTA_PIROUETTE))
     {
         if (gBattleMons[gBattlerAttacker].species == SPECIES_MELOETTA_ARIA)
@@ -17149,7 +17149,7 @@ void BS_TryHealPulse(void)
     }
     else
     {
-        if (GetBattlerAbility(gBattlerAttacker) == ABILITY_MEGA_LAUNCHER && gMovesInfo[gCurrentMove].pulseMove)
+        if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MEGA_LAUNCHER) && gMovesInfo[gCurrentMove].pulseMove)
             gBattleMoveDamage = -(GetNonDynamaxMaxHP(gBattlerTarget) * 75 / 100);
         else if (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN && gMovesInfo[gCurrentMove].argument == MOVE_EFFECT_FLORAL_HEALING)
             gBattleMoveDamage = -(GetNonDynamaxMaxHP(gBattlerTarget) * 2 / 3);
@@ -17387,7 +17387,7 @@ void BS_TryGulpMissile(void)
 
     if ((gBattleMons[gBattlerAttacker].species == SPECIES_CRAMORANT)
      && (gCurrentMove == MOVE_DIVE)
-     && (GetBattlerAbility(gBattlerAttacker) == ABILITY_GULP_MISSILE)
+     && (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_GULP_MISSILE))
      && TryBattleFormChange(gBattlerAttacker, FORM_CHANGE_BATTLE_HP_PERCENT))
         gBattlescriptCurrInstr = BattleScript_GulpMissileFormChange;
     else
@@ -17402,9 +17402,9 @@ void BS_TryActivateGulpMissile(void)
         && !gProtectStructs[gBattlerAttacker].confusionSelfDmg
         && TARGET_TURN_DAMAGED
         && gBattleMons[gBattlerTarget].species != SPECIES_CRAMORANT
-        && GetBattlerAbility(gBattlerTarget) == ABILITY_GULP_MISSILE)
+        && BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_GULP_MISSILE))
     {
-        if (GetBattlerAbility(gBattlerAttacker) != ABILITY_MAGIC_GUARD)
+        if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_MAGIC_GUARD))
         {
             gBattleMoveDamage = GetNonDynamaxMaxHP(gBattlerAttacker) / 4;
             if (gBattleMoveDamage == 0)
@@ -17551,11 +17551,12 @@ void BS_JumpIfBlockedBySoundproof(void)
 {
     NATIVE_ARGS(u8 battler, const u8 *jumpInstr);
     u32 battler = GetBattlerForBattleScript(cmd->battler);
-    if (gMovesInfo[gCurrentMove].soundMove && GetBattlerAbility(battler) == ABILITY_SOUNDPROOF)
+    if (gMovesInfo[gCurrentMove].soundMove && BattlerHasAbilityOrInnate(battler, ABILITY_SOUNDPROOF))
     {
         gLastUsedAbility = ABILITY_SOUNDPROOF;
         gBattlescriptCurrInstr = cmd->jumpInstr;
-        RecordAbilityBattle(battler, gLastUsedAbility);
+        if (!SpeciesHasInnate(gBattleMons[battler].species, ABILITY_SOUNDPROOF))
+            RecordAbilityBattle(battler, gLastUsedAbility);
         gBattlerAbility = battler;
     }
     else
