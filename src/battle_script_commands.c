@@ -12151,7 +12151,7 @@ static u32 ChangeStatBuffs(s8 statValue, u32 statId, u32 flags, const u8 *BS_ptr
                 if (GetBattlerSide(index) == GetBattlerSide(battler))
                     continue; // Only triggers on opposing side
 
-                if (GetBattlerAbility(index) == ABILITY_OPPORTUNIST
+                if (BattlerHasAbilityOrInnate(index, ABILITY_OPPORTUNIST)
                  && gProtectStructs[battler].activateOpportunist == 0) // don't activate opportunist on other mon's opportunist raises
                 {
                     gProtectStructs[index].activateOpportunist = 2;      // set stats to copy
@@ -12263,7 +12263,7 @@ static void Cmd_setmultihitcounter(void)
     }
     else
     {
-        if (GetBattlerAbility(gBattlerAttacker) == ABILITY_SKILL_LINK)
+        if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_SKILL_LINK))
         {
             gMultiHitCounter = 5;
         }
@@ -12652,7 +12652,7 @@ static void Cmd_tryKO(void)
         RecordItemEffectBattle(gBattlerTarget, holdEffect);
     }
 
-    if (targetAbility == ABILITY_STURDY)
+    if (BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_STURDY))
     {
         gMoveResultFlags |= MOVE_RESULT_MISSED;
         gLastUsedAbility = ABILITY_STURDY;
@@ -12663,8 +12663,8 @@ static void Cmd_tryKO(void)
     {
         if ((((gStatuses3[gBattlerTarget] & STATUS3_ALWAYS_HITS)
                 && gDisableStructs[gBattlerTarget].battlerWithSureHit == gBattlerAttacker)
-            || GetBattlerAbility(gBattlerAttacker) == ABILITY_NO_GUARD
-            || targetAbility == ABILITY_NO_GUARD)
+            || BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_NO_GUARD)
+            || BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_NO_GUARD))
             && gBattleMons[gBattlerAttacker].level >= gBattleMons[gBattlerTarget].level)
         {
             lands = TRUE;
@@ -12739,11 +12739,12 @@ static void Cmd_tryinfatuating(void)
 {
     CMD_ARGS(const u8 *failInstr);
 
-    if (GetBattlerAbility(gBattlerTarget) == ABILITY_OBLIVIOUS)
+    if (BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_OBLIVIOUS))
     {
         gBattlescriptCurrInstr = BattleScript_NotAffectedAbilityPopUp;
         gLastUsedAbility = ABILITY_OBLIVIOUS;
-        RecordAbilityBattle(gBattlerTarget, ABILITY_OBLIVIOUS);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_OBLIVIOUS))
+            RecordAbilityBattle(gBattlerTarget, ABILITY_OBLIVIOUS);
     }
     else
     {
@@ -13550,7 +13551,7 @@ static void Cmd_healpartystatus(void)
 
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_BELL;
 
-        if (GetBattlerAbility(gBattlerAttacker) != ABILITY_SOUNDPROOF
+        if (!BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_SOUNDPROOF)
          || B_HEAL_BELL_SOUNDPROOF == GEN_5 || B_HEAL_BELL_SOUNDPROOF >= GEN_8)
         {
             gBattleMons[gBattlerAttacker].status1 = 0;
@@ -13558,7 +13559,8 @@ static void Cmd_healpartystatus(void)
         }
         else
         {
-            RecordAbilityBattle(gBattlerAttacker, gBattleMons[gBattlerAttacker].ability);
+            if (!SpeciesHasInnate(gBattleMons[gBattlerAttacker].species, ABILITY_SOUNDPROOF))
+                RecordAbilityBattle(gBattlerAttacker, gBattleMons[gBattlerAttacker].ability);
             gBattleCommunication[MULTISTRING_CHOOSER] |= B_MSG_BELL_SOUNDPROOF_ATTACKER;
         }
 
@@ -13566,14 +13568,15 @@ static void Cmd_healpartystatus(void)
 
         if (IsBattlerAlive(partner))
         {
-            if (GetBattlerAbility(partner) != ABILITY_SOUNDPROOF || B_HEAL_BELL_SOUNDPROOF == GEN_5)
+            if (!BattlerHasAbilityOrInnate(partner, ABILITY_SOUNDPROOF) || B_HEAL_BELL_SOUNDPROOF == GEN_5)
             {
                 gBattleMons[partner].status1 = 0;
                 gBattleMons[partner].status2 &= ~STATUS2_NIGHTMARE;
             }
             else
             {
-                RecordAbilityBattle(partner, gBattleMons[partner].ability);
+                if (!SpeciesHasInnate(gBattleMons[partner].species, ABILITY_SOUNDPROOF))
+                    RecordAbilityBattle(partner, gBattleMons[partner].ability);
                 gBattleCommunication[MULTISTRING_CHOOSER] |= B_MSG_BELL_SOUNDPROOF_PARTNER;
             }
         }
@@ -13698,7 +13701,7 @@ static void Cmd_trysetperishsong(void)
     for (i = 0; i < gBattlersCount; i++)
     {
         if (gStatuses3[i] & STATUS3_PERISH_SONG
-            || GetBattlerAbility(i) == ABILITY_SOUNDPROOF
+            || BattlerHasAbilityOrInnate(i, ABILITY_SOUNDPROOF)
             || BlocksPrankster(gCurrentMove, gBattlerAttacker, i, TRUE))
         {
             notAffectedCount++;
@@ -14432,11 +14435,12 @@ static void Cmd_settaunt(void)
 {
     CMD_ARGS(const u8 *failInstr);
 
-    if (B_OBLIVIOUS_TAUNT >= GEN_6 && GetBattlerAbility(gBattlerTarget) == ABILITY_OBLIVIOUS)
+    if (B_OBLIVIOUS_TAUNT >= GEN_6 && BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_OBLIVIOUS))
     {
         gBattlescriptCurrInstr = BattleScript_NotAffectedAbilityPopUp;
         gLastUsedAbility = ABILITY_OBLIVIOUS;
-        RecordAbilityBattle(gBattlerTarget, ABILITY_OBLIVIOUS);
+        if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_OBLIVIOUS))
+            RecordAbilityBattle(gBattlerTarget, ABILITY_OBLIVIOUS);
     }
     else if (gDisableStructs[gBattlerTarget].tauntTimer == 0)
     {
@@ -14530,11 +14534,12 @@ static void Cmd_tryswapitems(void)
             gBattlescriptCurrInstr = cmd->failInstr;
         }
         // check if ability prevents swapping
-        else if (GetBattlerAbility(gBattlerTarget) == ABILITY_STICKY_HOLD)
+        else if (BattlerHasAbilityOrInnate(gBattlerTarget, ABILITY_STICKY_HOLD))
         {
             gBattlescriptCurrInstr = BattleScript_StickyHoldActivates;
-            gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
-            RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
+            gLastUsedAbility = ABILITY_STICKY_HOLD;
+            if (!SpeciesHasInnate(gBattleMons[gBattlerTarget].species, ABILITY_STICKY_HOLD))
+                RecordAbilityBattle(gBattlerTarget, gLastUsedAbility);
         }
         // took a while, but all checks passed and items can be safely swapped
         else
@@ -14580,7 +14585,7 @@ static void Cmd_tryswapitems(void)
             }
             else if (oldItemAtk == ITEM_NONE && *newItemAtk != ITEM_NONE)
             {
-                if (GetBattlerAbility(gBattlerAttacker) == ABILITY_UNBURDEN && gBattleResources->flags->flags[gBattlerAttacker] & RESOURCE_FLAG_UNBURDEN)
+                if (BattlerHasAbilityOrInnate(gBattlerAttacker, ABILITY_UNBURDEN) && gBattleResources->flags->flags[gBattlerAttacker] & RESOURCE_FLAG_UNBURDEN)
                     gBattleResources->flags->flags[gBattlerAttacker] &= ~RESOURCE_FLAG_UNBURDEN;
 
                 gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_ITEM_SWAP_TAKEN; // nothing -> <- target's item
@@ -14985,7 +14990,7 @@ static void Cmd_switchoutabilities(void)
     CMD_ARGS(u8 battler);
 
     u32 battler = GetBattlerForBattleScript(cmd->battler);
-    if (gBattleMons[battler].ability == ABILITY_NEUTRALIZING_GAS)
+    if (SpeciesHasInnate(gBattleMons[battler].species, ABILITY_NEUTRALIZING_GAS) || gBattleMons[battler].ability == ABILITY_NEUTRALIZING_GAS)
     {
         gBattleMons[battler].ability = ABILITY_NONE;
         BattleScriptPush(gBattlescriptCurrInstr);
@@ -14993,17 +14998,15 @@ static void Cmd_switchoutabilities(void)
     }
     else
     {
-        switch (GetBattlerAbility(battler))
-        {
-        case ABILITY_NATURAL_CURE:
+        if (BattlerHasAbilityOrInnate(battler, ABILITY_NATURAL_CURE)) {
             gBattleMons[battler].status1 = 0;
             BtlController_EmitSetMonData(battler, BUFFER_A, REQUEST_STATUS_BATTLE,
                                          gBitTable[*(gBattleStruct->battlerPartyIndexes + battler)],
                                          sizeof(gBattleMons[battler].status1),
                                          &gBattleMons[battler].status1);
             MarkBattlerForControllerExec(battler);
-            break;
-        case ABILITY_REGENERATOR:
+        }
+        if (BattlerHasAbilityOrInnate(battler, ABILITY_REGENERATOR)) {
             gBattleMoveDamage = GetNonDynamaxMaxHP(gBattlerAttacker) / 3;
             gBattleMoveDamage += gBattleMons[battler].hp;
             if (gBattleMoveDamage > gBattleMons[battler].maxHP)
@@ -15013,7 +15016,6 @@ static void Cmd_switchoutabilities(void)
                                          sizeof(gBattleMoveDamage),
                                          &gBattleMoveDamage);
             MarkBattlerForControllerExec(battler);
-            break;
         }
 
         gBattlescriptCurrInstr = cmd->nextInstr;
